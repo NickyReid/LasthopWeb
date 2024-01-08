@@ -5,14 +5,14 @@
 	</head>
 	<body>
 		<h1>
-			{% if username %}
-				Welcome {{ username }}
+			{% if lastfm_user_data %}
+				Welcome {{ lastfm_user_data.username }}
 			{% else %}
 				Welcome
 			{% endif %}
 		</h1>
-			{% if user %}
-				{{user.username}} exists in db
+			{% if message %}
+				{{ message }}
 			{% endif %}
 	<form method="post">
 		<input type="text" name="username" value="username">

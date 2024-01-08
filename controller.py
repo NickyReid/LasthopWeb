@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from firebase_client import FirebaseClient
 
 
-
 load_dotenv()
 
 SPOTIPY_CLIENT_ID = os.getenv('SPOTIPY_CLIENT_ID')
@@ -20,10 +19,11 @@ def get_user(username):
 
 
 def get_lastfm_user_data(username):
-    lastfm_user = lastfm_client.get_lastfm_user_data(username)
-    if lastfm_user:
-        get_or_create_user(username)
-    return lastfm_user
+    if username:
+        lastfm_user = lastfm_client.get_lastfm_user_data(username)
+        if lastfm_user:
+            get_or_create_user(username)
+        return lastfm_user
 
 
 def get_or_create_user(username):

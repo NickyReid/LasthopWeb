@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/html">
 	<head>
-		<title>Lasthop Web</title>
+		<title>Lasthop</title>
 	</head>
 	<body>
 		<h1>
@@ -15,8 +15,20 @@
 				{{ message }}
 			{% endif %}
 	<form method="post">
-		<input type="text" name="username" value="username">
+		<input type="text" name="username">
 		<input type="submit">
 	</form>
+
+	{% if playlist_url %}
+		Playlist created!
+		<a href="{{ playlist_url }}" target="_blank">Click here to open</a>
+	{% elif lastfm_user_data %}
+		<form method="post">
+			<input type="hidden" name="make_playlist" value="true">
+			<input type="submit" value="Make playlist">
+		</form>
+
+	{% endif %}
+
 	</body>
 </html>

@@ -1,4 +1,6 @@
-Flask
-firebase-admin
-waitress
-python-dotenv
+firebase-admin==6.3.0
+Flask==3.0.0
+Flask-Session==0.5.0
+waitress==2.1.2
+python-dotenv==1.0.0
+spotipy==2.23.0

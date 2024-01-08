@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html">
+	<head>
+		<title>Lasthop Web</title>
+	</head>
+	<body>
+		<h1>
+			{% if username %}
+				Welcome {{ username }}
+			{% else %}
+				Welcome
+			{% endif %}
+		</h1>
+			{% if user %}
+				{{user.username}} exists in db
+			{% endif %}
+	<form method="post">
+		<input type="text" name="username" value="username">
+		<input type="submit">
+	</form>
+	</body>
+</html>

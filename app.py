@@ -61,7 +61,8 @@ def index():
         make_playlist = request.form.get('make_playlist')
         if make_playlist:
             spotify_client = SpotifyClient(sp_oauth)
-            playlist_id, playlist_url = controller.make_playlist(spotify_client=spotify_client, lastfm_user_data=lastfm_user_data)
+            playlist_id, playlist_url = controller.make_playlist(spotify_client=spotify_client,
+                                                                 lastfm_user_data=lastfm_user_data)
 
     if username:
         if lastfm_user_data:

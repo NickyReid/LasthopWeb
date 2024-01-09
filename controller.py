@@ -35,11 +35,9 @@ def get_or_create_user(username):
 
 
 def get_stats(lastfm_user_data, tz_offset, cached=False):
-    print(f"cached = {cached}")
     if cached:
         cached_data = get_cached_stats(lastfm_user_data["username"])
         if cached_data:
-            print("Returning cached stats")
             return cached_data
     return lastfm_client.get_stats(lastfm_user_data, tz_offset)
 
@@ -48,7 +46,7 @@ def get_cached_stats(username):
     return firebase_client.get_user_data(username)
 
 
-def make_playlist(spotify_client: SpotifyClient, lastfm_user_data=None, tz_offset=None, data=None):
+def make_playlist(spotify_client: SpotifyClient, lastfm_user_data=None, data=None):
     if not data:
         data = get_cached_stats(lastfm_user_data["username"])
     return spotify_client.make_playlist(data, lastfm_user_data)

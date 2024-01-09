@@ -1,34 +1,33 @@
 <div>
-	{% if stats %}
-	<h2>
-		{{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B')  }}
-	</h2>
+    {% if stats %}
+    <h2>
+        {{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }}
+    </h2>
+    {% for year_data in stats %}
+    {% if year_data['data'] %}
+    <details>
+        <summary style="font-size: large;">
+            <strong>{{ year_data['day'].strftime('%Y') }}</strong>
+            {{ year_data['data'][0]['artist'] }}
+            [{{ year_data['data'][0]['track_data']['playcount'] }}]
+        </summary>
 
-		{% for year_data in stats %}
-		<h3>{{ year_data['day'].strftime('%Y') }}</h3>
-			{% if year_data['data'] %}
-			<details>
-				<summary>
-				{{ year_data['data'][0]['artist'] }}
-				{{ year_data['data'][0]['track_data']['playcount'] }}
-				</summary>
-				<p>
-				{% for artist_data in year_data['data'] %}
-					<details>
-						<summary>
-							{{ artist_data['artist'] }}
-							{{ artist_data['track_data']['playcount'] }}
-						</summary>
-						<p>
-							{% for track_data in artist_data['track_data']['tracks'] %}
-								{{ track_data["track_name"] }}</br>
-							{% endfor %}
-							</p>
-						</details>
-			{% endfor %}
-				</p>
-			</details>
-			{% endif %}
-		{% endfor %}
-	{% endif %}
+        {% for artist_data in year_data['data'] %}
+        <details style="margin-left: 6%;">
+            <summary>
+                {{ artist_data['artist'] }}
+                [{{ artist_data['track_data']['playcount'] }}]
+            </summary>
+            <p style="margin-left: 3%;margin-top: 0%;margin-bottom: 1%">
+                {% for track_data in artist_data['track_data']['tracks'] %}
+                {{ track_data["track_name"] }}<br/>
+                {% endfor %}
+            </p>
+        </details>
+        {% endfor %}
+
+    </details>
+    {% endif %}
+    {% endfor %}
+    {% endif %}
 </div>

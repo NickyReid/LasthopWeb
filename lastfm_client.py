@@ -58,13 +58,16 @@ class DataCompiler:
                 artist = scrobble["artist"]
                 track_name = scrobble["track_name"]
                 timestamp = scrobble["timestamp"]
+                if not timestamp:
+                    continue
+                date = datetime.fromtimestamp(int(timestamp))
                 if not artist_scrobble_dict.get(artist):
                     artist_scrobble_dict[artist] = {
-                        "playcount": 1, "tracks": [{"track_name": track_name, "timestamp": timestamp}]
+                        "playcount": 1, "tracks": [{"track_name": track_name, "date": date}]
                     }
                 else:
                     artist_scrobble_dict[artist]["playcount"] += 1
-                    artist_scrobble_dict[artist]["tracks"].append({"track_name": track_name, "timestamp": timestamp})
+                    artist_scrobble_dict[artist]["tracks"].append({"track_name": track_name, "date": date})
             artist_scrobble_list = []
             for artist, track_data in artist_scrobble_dict.items():
                 artist_scrobble_list.append({"artist": artist, "track_data": track_data})

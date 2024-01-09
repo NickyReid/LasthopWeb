@@ -13,13 +13,16 @@
         </summary>
 
         {% for artist_data in year_data['data'] %}
-        <details style="margin-left: 6%;">
+        <details style="margin-left: 5%;">
             <summary>
                 {{ artist_data['artist'] }}
                 [{{ artist_data['track_data']['playcount'] }}]
             </summary>
             <p style="margin-left: 3%;margin-top: 0%;margin-bottom: 1%">
                 {% for track_data in artist_data['track_data']['tracks'] %}
+                {% if track_data["date"] %}
+                <span style="font-size: small;"> [{{ track_data["date"].strftime('%H:%M') }}]</span>
+                {% endif %}
                 {{ track_data["track_name"] }}<br/>
                 {% endfor %}
             </p>

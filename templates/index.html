@@ -1,34 +1,56 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/html">
-	<head>
-		<title>Lasthop</title>
-	</head>
-	<body>
-		<h1>
-			{% if lastfm_user_data %}
-				Welcome {{ lastfm_user_data.username }}
-			{% else %}
-				Welcome
-			{% endif %}
-		</h1>
-			{% if message %}
-				{{ message }}
-			{% endif %}
+<head>
+    <title>Lasthop</title>
+</head>
+<body>
+<h1>
+    {% if lastfm_user_data %}
+    Welcome {{ lastfm_user_data.username }}
+    {% else %}
+    Welcome
+    {% endif %}
+</h1>
+<div>
+	<script>
+		var t = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		console.log("Timezone: " + t);
+	</script>
+</div>
+<div>
+	{% if message %}
+	{{ message }}
+	{% endif %}
+</div>
+<div>
 	<form method="post">
+		{% if lastfm_user_data.username %}
+		<input type="text" name="username" value="{{ lastfm_user_data.username }}">
+		{% else %}
 		<input type="text" name="username">
+		{% endif %}
+		<input id="tz-offset" name="tz_offset" type="hidden">
+		<script>
+			var tz_offset = new Date().getTimezoneOffset();
+			console.log("Timezone offset: " + tz_offset);
+			document.getElementById('tz-offset').value = tz_offset;
+		</script>
 		<input type="submit">
 	</form>
-
+</div>
+{% include 'partials/_stats.html' %}
+<div>
 	{% if playlist_url %}
-		Playlist created!
-		<a href="{{ playlist_url }}" target="_blank">Click here to open</a>
+	Playlist created!
+	<a href="{{ playlist_url }}" target="_blank">Click here to open</a>
+	<form method="post">
+		<input type="hidden" name="make_playlist" value="true">
+		<input type="submit" value="Regenerate Playlist">
+	</form>
 	{% elif lastfm_user_data %}
-		<form method="post">
-			<input type="hidden" name="make_playlist" value="true">
-			<input type="submit" value="Make playlist">
-		</form>
-
+	<a href="{{ auth_url }}">Make Playlist</a>
 	{% endif %}
+</div>
 
-	</body>
+</body>
 </html>

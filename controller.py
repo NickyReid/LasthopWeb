@@ -1,4 +1,3 @@
-import os
 import lastfm_client
 from dotenv import load_dotenv
 from firebase_admin import credentials

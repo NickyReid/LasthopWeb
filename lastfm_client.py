@@ -1,34 +1,16 @@
 import os
-import requests
 import math
-from datetime import datetime
-from dotenv import load_dotenv
-import csv
-import json
-import multiprocessing
-# import raw_file_writer
-# import lastfm_user_data as lud
-from datetime import datetime, timedelta
-# from shared.config import Config
-import enum
-import requests
-import subprocess
-import multiprocessing
-# import lastfm_user_data as lud
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
-from dateutil import parser
-# from shared.config import Config
-from firebase_client import FirebaseClient
 import pytz
-# import logging
+import requests
+import multiprocessing
+
+from dotenv import load_dotenv
+from datetime import datetime, timedelta
+from firebase_client import FirebaseClient
 
 
-# logger = logging.getLogger(__name__)
-# utc=pytz.UTC
 load_dotenv()
 LAST_FM_API_KEY = os.getenv('LAST_FM_API_KEY')
-# STATS_START_DATE = datetime.today()
 STATS_START_DATE = datetime.utcnow()
 
 
@@ -66,7 +48,6 @@ class DataCompiler:
         self.tz_offset = tz_offset if tz_offset else 0
 
     def summarize_data(self, data):
-        # logger.info(f"Summarizing data for {self.username}...")
         print(f"Summarizing data for {self.username}...")
         result = []
         for line in data:
@@ -95,7 +76,6 @@ class DataCompiler:
         return sorted_result
 
     def get_data_for_all_days(self):
-        # logger.info(f"Getting data from Last.fm for {self.username}...")
         print(f"Getting data from Last.fm for {self.username}...")
         days = self.get_list_of_dates()
         jobs = []
@@ -201,7 +181,6 @@ class DataCompiler:
         date_end_epoch = int(
             date_end.timestamp()
         )
-        # print(f"Getting data for {date_start}...")
         api_url = (
             f"http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks"
             f"&user={self.username}&"

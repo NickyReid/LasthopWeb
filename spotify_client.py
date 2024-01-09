@@ -1,17 +1,12 @@
 import re
 import os
 import spotipy
-# import lasthop
-# import lastfm_user_data
 import random
-import logging
 
 from dotenv import load_dotenv
-from spotipy.oauth2 import SpotifyOAuth
 from datetime import datetime
 
 load_dotenv()
-logger = logging.getLogger(__name__)
 
 HOST = os.getenv('HOST')
 
@@ -21,7 +16,6 @@ class SpotifyClient:
         self.spotify_client = spotipy.Spotify(auth_manager=auth_manager)
 
     def make_playlist(self, data: dict = None, lastfm_user_data: dict = None):
-        logger.info(f"Making Playlist")
         print(f"Making Playlist")
         track_data = self.format_track_data(data)
         if not track_data:

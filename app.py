@@ -3,20 +3,15 @@ import spotipy
 
 import controller
 from spotify_client import SpotifyClient
-import json
 from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, session
-# from flask_session import Session
 
 
 load_dotenv()
 app = Flask(__name__)
 
-# app.secret_key = os.urandom(64)
 app.secret_key = os.getenv('SESSION_SECRET_KEY')
-# app.config['SECRET_KEY'] = os.urandom(64)
-# Session(app)
 
 
 @app.route('/', methods=['POST', 'GET'])
@@ -65,9 +60,7 @@ def index():
 
         make_playlist = request.form.get('make_playlist')
         if make_playlist:
-            # if not sp_oauth.validate_token(cache_handler.get_cached_token()):
             spotify_client = SpotifyClient(sp_oauth)
-            # playlist_id, playlist_url = spotify_client.make_playlist()
             playlist_id, playlist_url = controller.make_playlist(spotify_client=spotify_client, lastfm_user_data=lastfm_user_data)
 
     if username:

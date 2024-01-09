@@ -1,15 +1,14 @@
 <div>
     {% if stats %}
-    <h2>
+    <h3>
         {{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }}
-    </h2>
+    </h3>
     {% for year_data in stats %}
     {% if year_data['data'] %}
     <details>
-        <summary style="font-size: large;">
+        <summary>
             <strong>{{ year_data['day'].strftime('%Y') }}</strong>
             {{ year_data['data'][0]['artist'] }}
-            [{{ year_data['data'][0]['track_data']['playcount'] }}]
         </summary>
 
         {% for artist_data in year_data['data'] %}

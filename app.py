@@ -41,7 +41,8 @@ def index():
             session["access_token"] = sp_oauth.get_access_token(request.args.get("code"), as_dict=False)
             spotify_client = SpotifyClient(sp_oauth)
             playlist_id, playlist_url = controller.make_playlist(spotify_client=spotify_client,
-                                                                 lastfm_user_data=lastfm_user_data)
+                                                                 lastfm_user_data=lastfm_user_data,
+                                                                 tz_offset=tz_offset)
             session["playlist_url"] = playlist_url
             return redirect('/')
 
@@ -62,7 +63,8 @@ def index():
         if make_playlist:
             spotify_client = SpotifyClient(sp_oauth)
             playlist_id, playlist_url = controller.make_playlist(spotify_client=spotify_client,
-                                                                 lastfm_user_data=lastfm_user_data)
+                                                                 lastfm_user_data=lastfm_user_data,
+                                                                 tz_offset=tz_offset)
 
     if username:
         if lastfm_user_data:

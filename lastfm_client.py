@@ -44,7 +44,7 @@ class DataCompiler:
         self.username = lastfm_username
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
-        self.stats_start_date = STATS_START_DATE.replace(tzinfo=pytz.UTC)
+        self.stats_start_date = STATS_START_DATE.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
         self.tz_offset = tz_offset if tz_offset else 0
 
     def summarize_data(self, data):
@@ -60,7 +60,8 @@ class DataCompiler:
                 timestamp = scrobble["timestamp"]
                 if not timestamp:
                     continue
-                date = datetime.fromtimestamp(int(timestamp))
+                date = (datetime.fromtimestamp(int(timestamp), tz=pytz.UTC) - timedelta(minutes=self.tz_offset))
+                # date = (datetime.fromtimestamp(int(timestamp))).replace(tzinfo=None)
                 if not artist_scrobble_dict.get(artist):
                     artist_scrobble_dict[artist] = {
                         "playcount": 1, "tracks": [{"track_name": track_name, "date": date}]

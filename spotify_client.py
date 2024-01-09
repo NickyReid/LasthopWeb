@@ -4,7 +4,7 @@ import spotipy
 import random
 
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -15,25 +15,25 @@ class SpotifyClient:
     def __init__(self, auth_manager):
         self.spotify_client = spotipy.Spotify(auth_manager=auth_manager)
 
-    def make_playlist(self, data: dict = None, lastfm_user_data: dict = None):
+    def make_playlist(self, data: dict = None, lastfm_user_data: dict = None, tz_offset: int = None):
         print(f"Making Playlist")
         track_data = self.format_track_data(data)
         if not track_data:
             return None, None
 
-        playlist_id, playlist_url = self.create_playlist(lastfm_user_data)
+        playlist_id, playlist_url = self.create_playlist(lastfm_user_data, tz_offset)
         self.search_for_tracks(self.spotify_client, playlist_id, track_data)
 
         return playlist_id, playlist_url
 
-    def create_playlist(self, lastfm_user_data: dict = None):
+    def create_playlist(self, lastfm_user_data: dict = None, tz_offset: int = None):
         user = self.spotify_client.current_user()
         user_id = user["id"]
         playlist_description = "What were you listening to on this day in previous years?"
         if lastfm_user_data:
             playlist_description += f" {lastfm_user_data['username']}'s listening history on this day since " \
                                     f"{lastfm_user_data['join_date'].year}"
-        playlist_name = f"Lasthop {datetime.today().date().strftime('%b %-d')}"
+        playlist_name = f"Lasthop {(datetime.utcnow().date() - timedelta(minutes=tz_offset)).strftime('%b %-d')}"
         playlist = self.spotify_client.user_playlist_create(user_id, playlist_name, public=False, collaborative=False,
                                                             description=playlist_description)
         playlist_url = playlist.get("external_urls", {}).get("spotify")

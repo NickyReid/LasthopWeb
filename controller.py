@@ -46,7 +46,7 @@ def get_cached_stats(username):
     return firebase_client.get_user_data(username)
 
 
-def make_playlist(spotify_client: SpotifyClient, lastfm_user_data=None, data=None):
+def make_playlist(spotify_client: SpotifyClient, lastfm_user_data=None, data=None, tz_offset=None):
     if not data:
         data = get_cached_stats(lastfm_user_data["username"])
-    return spotify_client.make_playlist(data, lastfm_user_data)
+    return spotify_client.make_playlist(data, lastfm_user_data, tz_offset)

@@ -6,6 +6,7 @@
 
 		{% for year_data in stats %}
 		<h3>{{ year_data['day'].strftime('%Y') }}</h3>
+			{% if year_data['data'] %}
 			<details>
 				<summary>
 				{{ year_data['data'][0]['artist'] }}
@@ -27,7 +28,7 @@
 			{% endfor %}
 				</p>
 			</details>
-
+			{% endif %}
 		{% endfor %}
 	{% endif %}
 </div>

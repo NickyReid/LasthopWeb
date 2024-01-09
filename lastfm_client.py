@@ -104,19 +104,19 @@ class DataCompiler:
             job = multiprocessing.Process(target=self.get_data_for_day, args=(day, queue))
             jobs.append(job)
             job.start()
+
+        result = []
+        job_count = 0
+        while job_count < len(jobs):
+            day_data = queue.get()
+            if day_data:
+                job_count += 1
+                if day_data.get("data"):
+                    result.append(day_data)
+
         for job in jobs:
             job.join()
-        print("B")
-        result = []
-        while not queue.empty():
-            print("Y")
-            day_data = queue.get()
-            result.append(day_data)
-        print("z")
         return result
-
-    def consumer(self, queue):
-
 
     def get_list_of_dates(self):
         date_to_process = self.stats_start_date
@@ -141,12 +141,9 @@ class DataCompiler:
             data_dict["track_name"] = title
             data_dict["timestamp"] = line.get("date", {}).get("uts")
             data_dict["time_text"] = line.get("date", {}).get("#text")
-            # dt_object = datetime.utcfromtimestamp(1704794290)
             data.append(data_dict)
-        print("X")
-        if data:
+        if True:
             result = {"day": day, "data": data}
-            print(f"{day} {len(data)}")
             queue.put(result)
 
     def get_lastfm_tracks_for_day(self, date: datetime) -> list:

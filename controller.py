@@ -6,21 +6,12 @@ import firebase_admin
 from firebase_client import FirebaseClient
 from spotify_client import SpotifyClient
 
-
 load_dotenv()
-
-# SPOTIPY_CLIENT_ID = os.getenv('SPOTIPY_CLIENT_ID')
-# SPOTIPY_CLIENT_SECRET = os.getenv('SPOTIPY_CLIENT_SECRET')
-# GENIUS_ACCESS_TOKEN = os.getenv('GENIUS_ACCESS_TOKEN')
 
 cred = credentials.Certificate('service-acc.json')
 firebase_admin.initialize_app(cred)
 
 firebase_client = FirebaseClient()
-
-
-# def get_user(username):
-#     return firebase_client.get_user(username)
 
 
 def get_lastfm_user_data(username):
@@ -44,7 +35,13 @@ def get_or_create_user(username):
             print(f"User {username} not found on lastfm")
 
 
-def get_stats(lastfm_user_data, tz_offset):
+def get_stats(lastfm_user_data, tz_offset, cached=False):
+    print(f"cached = {cached}")
+    if cached:
+        cached_data = get_cached_stats(lastfm_user_data["username"])
+        if cached_data:
+            print("Returning cached stats")
+            return cached_data
     return lastfm_client.get_stats(lastfm_user_data, tz_offset)
 
 

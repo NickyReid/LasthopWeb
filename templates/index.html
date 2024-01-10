@@ -79,7 +79,7 @@
         <input type="hidden" name="make_playlist" value="true">
         <input type="submit" value="Regenerate Playlist">
     </form>
-    {% elif lastfm_user_data %}
+    {% elif lastfm_user_data and stats %}
     <a href="{{ auth_url }}">Make Playlist</a>
     {% endif %}
 </div>

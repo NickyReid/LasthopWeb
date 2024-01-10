@@ -1,5 +1,6 @@
 import re
 import os
+import math
 import spotipy
 import random
 
@@ -9,6 +10,7 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 HOST = os.getenv('HOST')
+PLAYLIST_LENGTH = 50
 
 
 class SpotifyClient:
@@ -16,13 +18,16 @@ class SpotifyClient:
         self.spotify_client = spotipy.Spotify(auth_manager=auth_manager)
 
     def make_playlist(self, data: dict = None, lastfm_user_data: dict = None, tz_offset: int = None):
+        if not data:
+            print(f"No data for {lastfm_user_data['username']}")
+            return None, None
         print(f"Making Playlist")
         track_data = self.format_track_data(data)
         if not track_data:
             return None, None
 
         playlist_id, playlist_url = self.create_playlist(lastfm_user_data, tz_offset)
-        self.search_for_tracks(self.spotify_client, playlist_id, track_data)
+        self.search_for_tracks(self.spotify_client, playlist_id, track_data, data)
         if playlist_url:
             print(f"Playlist created {playlist_url}")
         return playlist_id, playlist_url
@@ -43,45 +48,66 @@ class SpotifyClient:
 
     def format_track_data(self, data: dict):
         this_year = datetime.today().year
-        artist_tracks_dict = {}
+        result = {}
         for year_data in data:
             day = year_data["day"]
             year = day.date().year
+            if year == this_year:
+                continue
+            result[day] = []
             data = year_data["data"]
             for artist_data in data:
+                artist_tracks_dict = {}
                 artist = artist_data["artist"]
                 tracks = artist_data["track_data"]["tracks"]
                 for track_data in tracks:
                     track_name = track_data["track_name"]
-                    if year != this_year:
-                        if artist_tracks_dict.get(artist):
-                            artist_tracks_dict[artist].append(track_name)
-                        else:
-                            artist_tracks_dict[artist] = [track_name]
-        return artist_tracks_dict
+                    if artist_tracks_dict.get(artist):
+                        artist_tracks_dict[artist].append(track_name)
+                    else:
+                        artist_tracks_dict[artist] = [track_name]
+                if artist_tracks_dict:
+                    artist_tracks_dict["playcount"] = len(artist_tracks_dict[artist])
 
-    def search_for_tracks(self, spotify_client, playlist_id, artist_tracks):
-        track_count = sum([len(y) for x, y in artist_tracks.items()])
-        print(f"Track count = {track_count}")
-        for artist, tracks in artist_tracks.items():
-            if track_count > 100 and len(tracks) < 2:
-                continue
-            random.shuffle(tracks)
-            selected_track = tracks[0]
-            found_track_uri = self.spotify_search(artist, selected_track)
-            if found_track_uri:
-                self.add_track_to_playlist(spotify_client, playlist_id, found_track_uri, selected_track, artist)
-            else:
-                current_search = selected_track
-                for retry_track in tracks[1:]:
-                    print(f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'")
-                    current_search = retry_track
-                    found_track_uri = self.spotify_search(artist, retry_track)
-                    if found_track_uri:
-                        self.add_track_to_playlist(spotify_client, playlist_id, found_track_uri, retry_track, artist)
-                        break
-            if not found_track_uri:
-                print(f"Couldn't find any tracks for {artist} :(")
+                    result[day].append({"artist": artist, "tracks": artist_tracks_dict[artist],
+                                        "playcount": artist_tracks_dict["playcount"]})
+                    result[day] = sorted(result[day], key=lambda d: d["playcount"], reverse=True)
+        return result
+
+    def search_for_tracks(self, spotify_client, playlist_id, artist_tracks, data):
+        tracks_per_year = math.ceil(PLAYLIST_LENGTH / len(artist_tracks))
+
+        added_artists = []
+        for year, artist_track_data in artist_tracks.items():
+            tracks_added_this_year = 0
+            for artist_dict in artist_track_data:
+                if tracks_added_this_year >= tracks_per_year:
+                    break
+                artist = artist_dict["artist"]
+                if artist in added_artists:
+                    print(f"{artist} already in playlist")
+                    continue
+                tracks = artist_dict["tracks"]
+                random.shuffle(tracks)
+                selected_track = tracks[0]
+                found_track_uri = self.spotify_search(artist, selected_track)
+                if found_track_uri:
+                    self.add_track_to_playlist(spotify_client, playlist_id, found_track_uri, selected_track, artist)
+                    tracks_added_this_year += 1
+                    added_artists.append(artist)
+                else:
+                    current_search = selected_track
+                    for retry_track in tracks[1:]:
+                        print(f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'")
+                        current_search = retry_track
+                        found_track_uri = self.spotify_search(artist, retry_track)
+                        if found_track_uri:
+                            self.add_track_to_playlist(spotify_client, playlist_id, found_track_uri, retry_track, artist)
+                            tracks_added_this_year += 1
+                            added_artists.append(artist)
+                            break
+                if not found_track_uri:
+                    print(f"Couldn't find any tracks for {artist} :(")
 
     def add_track_to_playlist(self, spotify_client, playlist_id, track_uri, track_name, artist):
         print(f"Adding '{track_name}' by {artist}")

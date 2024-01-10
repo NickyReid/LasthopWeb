@@ -4,7 +4,7 @@
     <details>
         <summary>
             <strong>{{ year_data['day'].strftime('%Y') }}</strong>
-            {{ year_data['data'][0]['artist'] }}
+            <span>{{ year_data['data'][0]['artist'] }}</span>
         </summary>
 
         {% for artist_data in year_data['data'] %}

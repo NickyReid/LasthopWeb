@@ -2,6 +2,27 @@
 <html xmlns="http://www.w3.org/1999/html">
 <head>
     <title>Lasthop</title>
+    <script>
+		var t = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		console.log("Timezone: " + t);
+
+        var artistView = true;
+
+		function toggleStatsView() {
+		    artistView = !artistView;
+
+		    var statsArtistView = document.getElementById("stats-artist-view");
+		    var statsChronoView = document.getElementById("stats-chrono-view");
+
+		    if (artistView == true){
+		        statsArtistView.style.display = "block";
+		        statsChronoView.style.display = "none";
+		    } else {
+		        statsArtistView.style.display = "none";
+		        statsChronoView.style.display = "block";
+		    }
+        }
+    </script>
 </head>
 <body>
 <h1>
@@ -12,46 +33,55 @@
     {% endif %}
 </h1>
 <div>
-	<script>
-		var t = Intl.DateTimeFormat().resolvedOptions().timeZone;
-		console.log("Timezone: " + t);
-	</script>
+    {% if message %}
+    {{ message }}
+    {% endif %}
 </div>
 <div>
-	{% if message %}
-	{{ message }}
-	{% endif %}
-</div>
-<div>
-	<form method="post">
-		{% if lastfm_user_data.username %}
-		<input type="text" name="username" value="{{ lastfm_user_data.username }}">
-		{% else %}
-		<input type="text" name="username">
-		{% endif %}
-		<input id="tz-offset" name="tz_offset" type="hidden">
-		<script>
+    <form method="post">
+        {% if lastfm_user_data.username %}
+        <input type="text" name="username" value="{{ lastfm_user_data.username }}">
+        {% else %}
+        <input type="text" name="username">
+        {% endif %}
+        <input id="tz-offset" name="tz_offset" type="hidden">
+        <script>
 			var tz_offset = new Date().getTimezoneOffset();
 			console.log("Timezone offset: " + tz_offset);
 			document.getElementById('tz-offset').value = tz_offset;
-		</script>
-		<input type="submit">
-	</form>
+        </script>
+        <input type="submit">
+    </form>
 </div>
-{% include 'partials/_stats.html' %}
+<div>
+    {% if stats %}
+    <h3>
+        {{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }}
+    </h3>
+    <label for="artist-view-checkbox">
+        <input type="checkbox" id="artist-view-checkbox" name="artist_view_checkbox" onclick="toggleStatsView()"
+               checked> Top artist view
+    </label>
+    <div id="stats-artist-view" style="display:block;">
+        {% include 'partials/_stats_top_artist_view.html' %}
+    </div>
+    <div id="stats-chrono-view" style="display:none;">
+        {% include 'partials/_stats_chronological_view.html' %}
+    </div>
+    {% endif %}
+</div>
 <br/>
 <div>
-	{% if playlist_url %}
-	Playlist created!
-	<a href="{{ playlist_url }}" target="_blank">Click here to open</a>
-	<form method="post">
-		<input type="hidden" name="make_playlist" value="true">
-		<input type="submit" value="Regenerate Playlist">
-	</form>
-	{% elif lastfm_user_data %}
-	<a href="{{ auth_url }}">Make Playlist</a>
-	{% endif %}
+    {% if playlist_url %}
+    Playlist created!
+    <a href="{{ playlist_url }}" target="_blank">Click here to open</a>
+    <form method="post">
+        <input type="hidden" name="make_playlist" value="true">
+        <input type="submit" value="Regenerate Playlist">
+    </form>
+    {% elif lastfm_user_data %}
+    <a href="{{ auth_url }}">Make Playlist</a>
+    {% endif %}
 </div>
-
 </body>
 </html>

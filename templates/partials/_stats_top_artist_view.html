@@ -1,8 +1,4 @@
 <div>
-    {% if stats %}
-    <h3>
-        {{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }}
-    </h3>
     {% for year_data in stats %}
     {% if year_data['data'] %}
     <details>
@@ -27,9 +23,7 @@
             </p>
         </details>
         {% endfor %}
-
     </details>
     {% endif %}
     {% endfor %}
-    {% endif %}
 </div>

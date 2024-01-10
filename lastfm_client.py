@@ -54,6 +54,7 @@ class DataCompiler:
             day = (line["day"] - timedelta(minutes=self.tz_offset)).replace(tzinfo=None)
             data = line["data"]
             artist_scrobble_dict = {}
+            scrobble_list = []
             for scrobble in data:
                 artist = scrobble["artist"]
                 track_name = scrobble["track_name"]
@@ -61,20 +62,22 @@ class DataCompiler:
                 if not timestamp:
                     continue
                 date = (datetime.fromtimestamp(int(timestamp), tz=pytz.UTC) - timedelta(minutes=self.tz_offset))
-                # date = (datetime.fromtimestamp(int(timestamp))).replace(tzinfo=None)
+                track_date_dict = {"track_name": track_name, "date": date}
                 if not artist_scrobble_dict.get(artist):
                     artist_scrobble_dict[artist] = {
-                        "playcount": 1, "tracks": [{"track_name": track_name, "date": date}]
+                        "playcount": 1, "tracks": [track_date_dict]
                     }
                 else:
                     artist_scrobble_dict[artist]["playcount"] += 1
-                    artist_scrobble_dict[artist]["tracks"].append({"track_name": track_name, "date": date})
+                    artist_scrobble_dict[artist]["tracks"].append(track_date_dict)
+                track_date_dict.update({"artist": artist})
+                scrobble_list.append(track_date_dict)
             artist_scrobble_list = []
             for artist, track_data in artist_scrobble_dict.items():
                 artist_scrobble_list.append({"artist": artist, "track_data": track_data})
 
             sorted_artist_scrobble_list = sorted(artist_scrobble_list, key=lambda d: d["track_data"]["playcount"], reverse=True)
-            result.append({"day": day, "data": sorted_artist_scrobble_list})
+            result.append({"day": day, "data": sorted_artist_scrobble_list, "scrobble_list": scrobble_list})
 
         sorted_result = sorted(result, key=lambda d: d["day"], reverse=True)
         return sorted_result

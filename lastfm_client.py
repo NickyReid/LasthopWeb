@@ -141,8 +141,7 @@ class DataCompiler:
         """
         lastfm_response = self.lastfm_api_query(date, 1)
         lastfm_tracks = lastfm_response.get("recenttracks", {}).get("track")
-        total_track_count = lastfm_response.get("recenttracks", {}).get("total", 0)
-        num_pages = math.ceil(total_track_count / 200)
+        num_pages = int(lastfm_response.get("recenttracks", {}).get("@attr", {}).get("totalPages", 0))
         if num_pages > 1:
             for page_num in range(2, num_pages + 1):
                 lastfm_response = self.lastfm_api_query(date, page_num)

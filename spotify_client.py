@@ -23,7 +23,8 @@ class SpotifyClient:
 
         playlist_id, playlist_url = self.create_playlist(lastfm_user_data, tz_offset)
         self.search_for_tracks(self.spotify_client, playlist_id, track_data)
-
+        if playlist_url:
+            print(f"Playlist created {playlist_url}")
         return playlist_id, playlist_url
 
     def create_playlist(self, lastfm_user_data: dict = None, tz_offset: int = None):
@@ -33,7 +34,7 @@ class SpotifyClient:
         if lastfm_user_data:
             playlist_description += f" {lastfm_user_data['username']}'s listening history on this day since " \
                                     f"{lastfm_user_data['join_date'].year}"
-        playlist_name = f"Lasthop {(datetime.utcnow().date() - timedelta(minutes=tz_offset)).strftime('%b %-d')}"
+        playlist_name = f"Lasthop {(datetime.utcnow() - timedelta(minutes=tz_offset)).strftime('%b %-d')}"
         playlist = self.spotify_client.user_playlist_create(user_id, playlist_name, public=False, collaborative=False,
                                                             description=playlist_description)
         playlist_url = playlist.get("external_urls", {}).get("spotify")

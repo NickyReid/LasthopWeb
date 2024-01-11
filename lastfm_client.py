@@ -75,7 +75,6 @@ class DataCompiler:
             artist_scrobble_list = []
             for artist, track_data in artist_scrobble_dict.items():
                 artist_scrobble_list.append({"artist": artist, "track_data": track_data})
-
             artist_scrobble_list = sorted(artist_scrobble_list, key=lambda d: d["track_data"]["playcount"], reverse=True)
             top_artist_d = artist_scrobble_list[0]["artist"]
             top_tag = self.get_top_tag_for_artist(top_artist_d)

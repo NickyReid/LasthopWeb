@@ -10,6 +10,7 @@ from firebase_client import FirebaseClient
 
 load_dotenv()
 LAST_FM_API_KEY = os.getenv('LAST_FM_API_KEY')
+LAST_FM_BASE_URL = "http://ws.audioscrobbler.com/2.0"
 STATS_START_DATE = datetime.utcnow()
 
 
@@ -19,7 +20,7 @@ def get_lastfm_user_data(username):
     :return: Dict with user's username, join date, real name and total number of tracks played
     """
     api_url = (
-        f"http://ws.audioscrobbler.com/2.0/?method=user.getinfo"
+        f"{LAST_FM_BASE_URL}/?method=user.getinfo"
         f"&user={username}"
         f"&api_key={LAST_FM_API_KEY}"
         f"&format=json"
@@ -75,8 +76,12 @@ class DataCompiler:
             for artist, track_data in artist_scrobble_dict.items():
                 artist_scrobble_list.append({"artist": artist, "track_data": track_data})
 
-            sorted_artist_scrobble_list = sorted(artist_scrobble_list, key=lambda d: d["track_data"]["playcount"], reverse=True)
-            result.append({"day": day, "data": sorted_artist_scrobble_list, "scrobble_list": scrobble_list})
+            artist_scrobble_list = sorted(artist_scrobble_list, key=lambda d: d["track_data"]["playcount"], reverse=True)
+            top_artist_d = artist_scrobble_list[0]["artist"]
+            top_tag = self.get_top_tag_for_artist(top_artist_d)
+            if top_tag:
+                artist_scrobble_list[0]["tag"] = top_tag
+            result.append({"day": day, "data": artist_scrobble_list, "scrobble_list": scrobble_list})
 
         sorted_result = sorted(result, key=lambda d: d["day"], reverse=True)
         return sorted_result
@@ -168,6 +173,25 @@ class DataCompiler:
                     del lastfm_tracks[0]
         return lastfm_tracks
 
+    @staticmethod
+    def get_top_tag_for_artist(artist: str) -> str:
+        top_tag = None
+        api_url = (
+            f"{LAST_FM_BASE_URL}/?method=artist.gettoptags"
+            f"&artist={artist}&"
+            f"api_key=8257fbe241e266367f27e30b0e866aba&"
+            f"autocorrect=1&"
+            f"&format=json"
+        )
+        response = requests.get(api_url).json()
+        tag_list = response.get("toptags", {}).get("tag", [])
+        for tag in tag_list:
+            tag_name = tag.get("name")
+            if "seen live" not in tag_name:
+                top_tag = tag_name
+                break
+        return top_tag
+
     def lastfm_api_query(self, date: datetime, page_num: int) -> dict:
         """
         Get data from Last.fm api
@@ -187,7 +211,7 @@ class DataCompiler:
             date_end.timestamp()
         )
         api_url = (
-            f"http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks"
+            f"{LAST_FM_BASE_URL}/?method=user.getrecenttracks"
             f"&user={self.username}&"
             f"api_key=8257fbe241e266367f27e30b0e866aba&"
             f"&from={date_start_epoch}"

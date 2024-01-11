@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 HOST = os.getenv('HOST')
-PLAYLIST_LENGTH = 50
+PLAYLIST_LENGTH = 75
 
 
 class SpotifyClient:
@@ -27,7 +27,7 @@ class SpotifyClient:
             return None, None
 
         playlist_id, playlist_url = self.create_playlist(lastfm_user_data, tz_offset)
-        self.search_for_tracks(self.spotify_client, playlist_id, track_data, data)
+        self.search_for_tracks(self.spotify_client, playlist_id, track_data)
         if playlist_url:
             print(f"Playlist created {playlist_url}")
         return playlist_id, playlist_url
@@ -74,9 +74,8 @@ class SpotifyClient:
                     result[day] = sorted(result[day], key=lambda d: d["playcount"], reverse=True)
         return result
 
-    def search_for_tracks(self, spotify_client, playlist_id, artist_tracks, data):
-        tracks_per_year = math.ceil(PLAYLIST_LENGTH / len(artist_tracks))
-
+    def search_for_tracks(self, spotify_client, playlist_id, artist_tracks):
+        tracks_per_year = math.ceil(PLAYLIST_LENGTH / len(artist_tracks)) + len(artist_tracks)
         added_artists = []
         for year, artist_track_data in artist_tracks.items():
             tracks_added_this_year = 0

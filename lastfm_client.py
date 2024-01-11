@@ -1,5 +1,4 @@
 import os
-import math
 import pytz
 import requests
 import multiprocessing
@@ -108,7 +107,7 @@ class DataCompiler:
     def get_list_of_dates(self):
         date_to_process = self.stats_start_date
         days = []
-        while date_to_process >= self.join_date:
+        while date_to_process.date() >= self.join_date.date():
             days.append(date_to_process)
             date_to_process = date_to_process.replace(year=date_to_process.year - 1)
         return days

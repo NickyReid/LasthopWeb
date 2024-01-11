@@ -81,7 +81,6 @@ class DataCompiler:
             if top_tag:
                 artist_scrobble_list[0]["tag"] = top_tag
             result.append({"day": day, "data": artist_scrobble_list, "scrobble_list": scrobble_list})
-
         sorted_result = sorted(result, key=lambda d: d["day"], reverse=True)
         return sorted_result
 

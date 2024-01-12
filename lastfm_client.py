@@ -11,6 +11,7 @@ from firebase_client import FirebaseClient
 load_dotenv()
 LAST_FM_API_KEY = os.getenv('LAST_FM_API_KEY')
 LAST_FM_BASE_URL = "http://ws.audioscrobbler.com/2.0"
+HEADERS = {'User-Agent': "LasthopWeb/1.0"}
 STATS_START_DATE = datetime.utcnow()
 
 
@@ -25,7 +26,7 @@ def get_lastfm_user_data(username):
         f"&api_key={LAST_FM_API_KEY}"
         f"&format=json"
     )
-    api_response = requests.get(api_url).json()
+    api_response = requests.get(api_url, headers=HEADERS).json()
 
     if not api_response.get("user"):
         return {}
@@ -181,7 +182,7 @@ class DataCompiler:
             f"autocorrect=1&"
             f"&format=json"
         )
-        response = requests.get(api_url).json()
+        response = requests.get(api_url, headers=HEADERS).json()
         tag_list = response.get("toptags", {}).get("tag", [])
         for tag in tag_list:
             tag_name = tag.get("name")
@@ -218,7 +219,7 @@ class DataCompiler:
             f"&page={page_num}"
             f"&format=json"
         )
-        response = requests.get(api_url).json()
+        response = requests.get(api_url, headers=HEADERS).json()
         return response
 
 

@@ -45,7 +45,7 @@ class DataCompiler:
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
         self.stats_start_date = STATS_START_DATE.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
-        self.tz_offset = tz_offset if tz_offset else 0
+        self.tz_offset = tz_offset or 0
 
     def summarize_data(self, data):
         print(f"Summarizing data for {self.username}...")
@@ -59,10 +59,10 @@ class DataCompiler:
                 artist = scrobble["artist"]
                 track_name = scrobble["track_name"]
                 timestamp = scrobble["timestamp"]
-                if not timestamp:
+                if not timestamp:  # Don't add currently playing track to stats
                     continue
                 date = (datetime.fromtimestamp(int(timestamp), tz=pytz.UTC) - timedelta(minutes=self.tz_offset))
-                track_date_dict = {"track_name": track_name, "date": date}
+                track_date_dict = {"track_name": track_name, "date": date, "artist": artist}
                 if not artist_scrobble_dict.get(artist):
                     artist_scrobble_dict[artist] = {
                         "playcount": 1, "tracks": [track_date_dict]
@@ -70,7 +70,6 @@ class DataCompiler:
                 else:
                     artist_scrobble_dict[artist]["playcount"] += 1
                     artist_scrobble_dict[artist]["tracks"].append(track_date_dict)
-                track_date_dict.update({"artist": artist})
                 scrobble_list.append(track_date_dict)
             artist_scrobble_list = []
             for artist, track_data in artist_scrobble_dict.items():
@@ -173,6 +172,7 @@ class DataCompiler:
 
     @staticmethod
     def get_top_tag_for_artist(artist: str) -> str:
+        print(f"Getting top tag for {artist}...")
         top_tag = None
         api_url = (
             f"{LAST_FM_BASE_URL}/?method=artist.gettoptags"
@@ -229,6 +229,6 @@ def get_stats(lastfm_user_data, tz_offset):
     data_for_all_days = data_compiler.get_data_for_all_days()
     summary = data_compiler.summarize_data(data_for_all_days)
     firebase_client = FirebaseClient()
-    firebase_client.write_data_for_user(lastfm_user_data["username"], summary)
+    firebase_client.set_user_data(lastfm_user_data["username"], summary)
     return summary
 

@@ -27,7 +27,7 @@ class FirebaseClient:
         dat = doc.get("data")
         return dat
 
-    def write_data_for_user(self, username, data):
+    def set_user_data(self, username, data):
         print(f"Caching data for {username}...")
         doc_ref = self.client.collection("users").document(username.lower())
         doc_ref.update({"data": data})

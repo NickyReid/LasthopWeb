@@ -1,7 +1,8 @@
 import lastfm_client
-from dotenv import load_dotenv
-from firebase_admin import credentials
 import firebase_admin
+from dotenv import load_dotenv
+from datetime import datetime
+from firebase_admin import credentials
 from firebase_client import FirebaseClient
 from spotify_client import SpotifyClient
 
@@ -35,18 +36,27 @@ def get_or_create_user(username):
 
 
 def get_stats(lastfm_user_data, tz_offset, cached=False):
+    start_time = datetime.now()
     if cached:
         cached_data = get_cached_stats(lastfm_user_data["username"])
         if cached_data:
             return cached_data
-    return lastfm_client.get_stats(lastfm_user_data, tz_offset)
+    stats = lastfm_client.get_stats(lastfm_user_data, tz_offset)
+    print(f"(took {(datetime.now() - start_time).seconds} seconds)")
+    return stats
 
 
 def get_cached_stats(username):
     return firebase_client.get_user_data(username)
 
 
-def make_playlist(spotify_client: SpotifyClient, lastfm_user_data=None, data=None, tz_offset=None):
+def make_playlist(spotify_client: SpotifyClient, lastfm_user_data: dict = None, data: dict = None,
+                  tz_offset: int = None, tz: str =None):
     if not data:
         data = get_cached_stats(lastfm_user_data["username"])
-    return spotify_client.make_playlist(data, lastfm_user_data, tz_offset)
+    available_market = None   # TODO timezones to spotify available_markets
+    if tz:
+        print(f"Client timezone: {tz}")
+        if "johannesburg" in tz.lower():
+            available_market = "ZA"
+    return spotify_client.make_playlist(data, lastfm_user_data, tz_offset, available_market)

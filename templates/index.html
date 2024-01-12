@@ -3,9 +3,6 @@
 <head>
     <title>Lasthop</title>
     <script>
-		var t = Intl.DateTimeFormat().resolvedOptions().timeZone;
-		console.log("Timezone: " + t);
-
         var artistView = true;
 
 		function toggleStatsView() {
@@ -45,10 +42,14 @@
         <input type="text" name="username">
         {% endif %}
         <input id="tz-offset" name="tz_offset" type="hidden">
+        <input id="tz" name="tz" type="hidden">
         <script>
 			var tz_offset = new Date().getTimezoneOffset();
+			var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 			console.log("Timezone offset: " + tz_offset);
+			console.log("Timezone: " + tz);
 			document.getElementById('tz-offset').value = tz_offset;
+			document.getElementById('tz').value = tz;
         </script>
         <input type="submit">
     </form>

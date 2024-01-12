@@ -22,6 +22,7 @@ def index():
     playlist_url = None
     stats = None
     tz_offset = None
+    tz = None
     use_cached_data = True
     cache_handler = spotipy.cache_handler.FlaskSessionCacheHandler(session)
     sp_oauth = spotipy.oauth2.SpotifyOAuth(redirect_uri=f"{os.getenv('HOST')}/",
@@ -35,6 +36,8 @@ def index():
         playlist_url = session["playlist_url"]
     if "tz_offset" in session:
         tz_offset = session["tz_offset"]
+    if "tz" in session:
+        tz = session["tz"]
 
     if request.method == 'GET':
         if request.args.get("code"):
@@ -49,6 +52,8 @@ def index():
     elif request.method == 'POST':
         if request.form.get("tz_offset"):
             session["tz_offset"] = tz_offset = int(request.form["tz_offset"])
+        if request.form.get("tz"):
+            session["tz"] = tz = request.form["tz"]
 
         if request.form.get("username"):
             use_cached_data = False
@@ -64,15 +69,18 @@ def index():
             spotify_client = SpotifyClient(sp_oauth)
             playlist_id, playlist_url = controller.make_playlist(spotify_client=spotify_client,
                                                                  lastfm_user_data=lastfm_user_data,
-                                                                 tz_offset=tz_offset)
+                                                                 tz_offset=tz_offset,
+                                                                 tz=tz)
 
     if username:
         if lastfm_user_data:
-            message = f"{username} has been on Last.fm since {datetime.strftime(lastfm_user_data.get('join_date').date(), '%-d %B %Y')}"
+            message = f"{username} has been on Last.fm since " \
+                      f"{datetime.strftime(lastfm_user_data.get('join_date').date(), '%-d %B %Y')}"
             stats = controller.get_stats(lastfm_user_data, tz_offset, cached=use_cached_data)
         else:
             message = f"{username} not found on Last.fm"
-    return render_template('index.html', lastfm_user_data=lastfm_user_data, playlist_url=playlist_url, message=message, auth_url=auth_url, stats=stats)
+    return render_template('index.html', lastfm_user_data=lastfm_user_data, playlist_url=playlist_url, message=message,
+                           auth_url=auth_url, stats=stats)
 
 
 if __name__ == "__main__":

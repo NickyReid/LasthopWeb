@@ -122,10 +122,15 @@ class DataCompiler:
             data_dict = {}
             artist = line.get("artist", {}).get("#text")
             title = line.get("name")
-            if "[live]" in title.lower():
+            if "[Live]" in title.lower():
+                title = title.replace("[Live]", "")
+            elif "(Live)" in title.lower():
+                title = title.replace("(Live)", "")
+            elif "[live]" in title.lower():
                 title = title.replace("[live]", "")
             elif "(live)" in title.lower():
-                title = title.replace("(live", "")
+                title = title.replace("(live)", "")
+
             data_dict["artist"] = artist
             data_dict["track_name"] = title
             data_dict["timestamp"] = line.get("date", {}).get("uts")

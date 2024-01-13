@@ -132,13 +132,15 @@ class SpotifyClient:
                     found_item = None
                     for item in search_result:
                         album = item.get("album")
+                        found_track_name = item["name"]
                         search_artists = album.get("artists")
                         for search_artist in search_artists:
                             search_artist_name = search_artist.get("name")
                             # TODO available markets config
                             if (search_artist_name.lower() in artist.lower()
                                 or artist.lower() in search_artist_name.lower()) \
-                                    and " - live" not in track_name.lower() and "live at " not in track_name.lower():
+                                    and " - live" not in found_track_name.lower() \
+                                    and "live at " not in found_track_name.lower():
                                 found_item = item
                                 break
                         else:

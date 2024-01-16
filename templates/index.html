@@ -1,88 +1,149 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/html">
+<html lang="en">
 <head>
-    <title>Lasthop</title>
-    <script>
-        var artistView = true;
-
-		function toggleStatsView() {
-		    artistView = !artistView;
-
-		    var statsArtistView = document.getElementById("stats-artist-view");
-		    var statsChronoView = document.getElementById("stats-chrono-view");
-
-		    if (artistView == true){
-		        statsArtistView.style.display = "block";
-		        statsChronoView.style.display = "none";
-		    } else {
-		        statsArtistView.style.display = "none";
-		        statsChronoView.style.display = "block";
-		    }
-        }
-    </script>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <meta name="description" content=""/>
+    <meta name="author" content=""/>
+    <title>Lasthop - Music Throwbacks</title>
+    <link rel="icon" type="image/x-icon" href="static/assets/favicon.ico"/>
+    <!-- Font Awesome icons (free version)-->
+    <!--        <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>-->
+    <!-- Google fonts-->
+    <!--        <link rel="preconnect" href="https://fonts.gstatic.com" />-->
+    <!--        <link href="https://fonts.googleapis.com/css2?family=Tinos:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet" />-->
+    <!--        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&amp;display=swap" rel="stylesheet" />-->
+    <!-- Core theme CSS (includes Bootstrap)-->
+    <link href="static/css/styles.css" rel="stylesheet"/>
 </head>
-<body>
-<h1>
-    {% if lastfm_user_data %}
-    Welcome {{ lastfm_user_data.username }}
-    {% else %}
-    Welcome
+<body style="background-image: url('static/assets/img/{{ range(1, 10) | random }}.jpg');">
+<!-- Background Video-->
+<!--        <img class="bg-video" src="static/assets/img/1.jpg" alt="album-collage">-->
+<!--        <video class="bg-video" playsinline="playsinline" autoplay="autoplay" muted="muted" loop="loop"><source src="static/assets/mp4/bg.mp4" type="video/mp4" /></video>-->
+<!-- Masthead-->
+<div class="masthead">
+    {% if not stats %}
+    <div class="masthead-content text-white">
+        <div class="container-fluid px-4 px-lg-0">
+            <h1 class="fst-italic lh-1 mb-4">Lasthop</h1>
+            <p class="mb-5">What were you listening to on this day in history?</p>
+
+            <form id="usernameForm" method="post">
+                <div class="row input-group-newsletter">
+                    <div class="col"><input class="form-control" id="username" name="username"
+                                            placeholder="Enter Last.fm username..."
+                                            aria-label="Enter Last.fm username..." data-sb-validations="required,"/>
+                    </div>
+                    <input id="tz-offset" name="tz_offset" type="hidden">
+                    <input id="tz" name="tz" type="hidden">
+                    <script>
+                                        var tz_offset = new Date().getTimezoneOffset();
+                                        var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                                        console.log("Timezone offset: " + tz_offset);
+                                        console.log("Timezone: " + tz);
+                                        document.getElementById('tz-offset').value = tz_offset;
+                                        document.getElementById('tz').value = tz;
+
+                    </script>
+                    <div class="col-auto"><input class="btn btn-primary" id="submitButton" type="submit"></div>
+                    <div class="invalid-feedback mt-2" data-sb-feedback="email:required">Last.fm username is required
+                    </div>
+
+                </div>
+
+                <!--                        <div class="invalid-feedback mt-2" data-sb-feedback="email:required">Last.fm username is required</div>-->
+                <!-- Submit success message-->
+                <!---->
+                <!-- This is what your users will see when the form-->
+                <!-- has successfully submitted-->
+                <!--                        <div class="d-none" id="submitSuccessMessage">-->
+                <!--                            <div class="text-center mb-3 mt-2">-->
+                <!--                                <div class="fw-bolder">Form submission successful!</div>-->
+                <!--                                To activate this form, sign up at-->
+                <!--                                <br />-->
+                <!--                                <a href="https://startbootstrap.com/solution/contact-forms">https://startbootstrap.com/solution/contact-forms</a>-->
+                <!--                            </div>-->
+                <!--                        </div>-->
+                <!-- Submit error message-->
+                <!---->
+                <!-- This is what your users will see when there is-->
+                <!-- an error submitting the form-->
+                <!--                        <div class="d-none" id="submitErrorMessage"><div class="text-center text-danger mb-3 mt-2">Error sending message!</div></div>-->
+            </form>
+        </div>
+    </div>
     {% endif %}
-</h1>
-<div>
-    {% if message %}
-    {{ message }}
-    {% endif %}
-</div>
-<div>
-    <form method="post">
-        {% if lastfm_user_data.username %}
-        <input type="text" name="username" value="{{ lastfm_user_data.username }}">
-        {% else %}
-        <input type="text" name="username">
-        {% endif %}
-        <input id="tz-offset" name="tz_offset" type="hidden">
-        <input id="tz" name="tz" type="hidden">
-        <script>
-			var tz_offset = new Date().getTimezoneOffset();
-			var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-			console.log("Timezone offset: " + tz_offset);
-			console.log("Timezone: " + tz);
-			document.getElementById('tz-offset').value = tz_offset;
-			document.getElementById('tz').value = tz;
-        </script>
-        <input type="submit">
-    </form>
-</div>
-<div>
     {% if stats %}
-    <h3>
-        {{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }}
-    </h3>
-    <label for="artist-view-checkbox">
-        <input type="checkbox" id="artist-view-checkbox" name="artist_view_checkbox" onclick="toggleStatsView()"
-               checked> Top artist view
-    </label>
-    <div id="stats-artist-view" style="display:block;">
-        {% include 'partials/_stats_top_artist_view.html' %}
+    <div class="masthead-content text-white">
+        <div class="container-fluid px-4 px-lg-0">
+            <!--            <h4 class="fst-italic lh-1 mb-4">{{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }}</h4>-->
+            <p>{{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }} </p>
+            <div style="margin-left: auto;margin-right: auto;margin-bottom: 5%;">
+                {% if playlist_url %}
+
+                <div class="container-fluid px-4 px-lg-0"  style="margin-left: auto;margin-right: auto;margin-bottom: 5%;">
+                    <a class="btn btn-primary" href="{{ playlist_url }}">Open Playlist</a>
+                </div>
+
+                <div class="container-fluid px-4 px-lg-0">
+                    <form method="post">
+                        <input type="hidden" name="make_playlist" value="true">
+                        <input class="btn btn-primary" type="submit" value="Regenerate Playlist">
+                    </form>
+                </div>
+
+                {% elif lastfm_user_data and stats %}
+                <div class="container-fluid px-4 px-lg-0">
+                    <a class="btn btn-primary" href="{{ auth_url }}">Make Playlist</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div>
+                <!--    <h3>-->
+                <!--        {{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }}-->
+                <!--    </h3>-->
+                <label for="artist-view-checkbox">
+                    <input type="checkbox" id="artist-view-checkbox" name="artist_view_checkbox" onclick="toggleStatsView()"
+                           checked> Top artist view
+                </label>
+                <div id="stats-artist-view" style="display:block;">
+                    {% include 'partials/_stats_top_artist_view.html' %}
+                </div>
+                <div id="stats-chrono-view" style="display:none;">
+                    {% include 'partials/_stats_chronological_view.html' %}
+                </div>
+            </div>
+
+        </div>
+
     </div>
-    <div id="stats-chrono-view" style="display:none;">
-        {% include 'partials/_stats_chronological_view.html' %}
-    </div>
-    {% endif %}
+{% endif %}
 </div>
-<br/>
-<div>
-    {% if playlist_url %}
-    Playlist created!
-    <a href="{{ playlist_url }}" target="_blank">Click here to open</a>
-    <form method="post">
-        <input type="hidden" name="make_playlist" value="true">
-        <input type="submit" value="Regenerate Playlist">
-    </form>
-    {% elif lastfm_user_data and stats %}
-    <a href="{{ auth_url }}">Make Playlist</a>
-    {% endif %}
-</div>
+
+<!--<div class="masthead">-->
+
+<!--</div>-->
+
+
+
+<!-- Social Icons-->
+<!-- For more icon options, visit https://fontawesome.com/icons?d=gallery&p=2&s=brands-->
+<!--        <div class="social-icons">-->
+<!--            <div class="d-flex flex-row flex-lg-column justify-content-center align-items-center h-100 mt-3 mt-lg-0">-->
+<!--                <a class="btn btn-dark m-3" href="#!"><i class="fab fa-twitter"></i></a>-->
+<!--                <a class="btn btn-dark m-3" href="#!"><i class="fab fa-facebook-f"></i></a>-->
+<!--                <a class="btn btn-dark m-3" href="#!"><i class="fab fa-instagram"></i></a>-->
+<!--            </div>-->
+<!--        </div>-->
+<!-- Bootstrap core JS-->
+<!--        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>-->
+<!-- Core theme JS-->
+<script src="static/js/scripts.js"></script>
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+<!-- * *                               SB Forms JS                               * *-->
+<!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+<!--        <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>-->
 </body>
 </html>

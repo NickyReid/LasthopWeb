@@ -24,6 +24,7 @@ def index():
     tz_offset = None
     tz = None
     use_cached_data = True
+
     cache_handler = spotipy.cache_handler.FlaskSessionCacheHandler(session)
     sp_oauth = spotipy.oauth2.SpotifyOAuth(redirect_uri=f"{os.getenv('HOST')}/",
                                            scope="playlist-modify-private", cache_handler=cache_handler)
@@ -71,7 +72,6 @@ def index():
                                                                  lastfm_user_data=lastfm_user_data,
                                                                  tz_offset=tz_offset,
                                                                  tz=tz)
-
     if username:
         if lastfm_user_data:
             message = f"{username} has been on Last.fm since " \

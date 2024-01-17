@@ -16,16 +16,6 @@ PLAYLIST_SIZE_VAR = 50
 AUTH_SCOPE = "playlist-modify-private"
 
 
-class Singleton(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            # don't want __init__ to be called every time
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
 class SpotifyClient:
     def __init__(self, auth_manager=None, session=None):
         if not auth_manager and not session:
@@ -37,11 +27,10 @@ class SpotifyClient:
 
     @staticmethod
     def get_auth_manager(session):
-        print("!!!SPOTIFY AUTH")
         return spotipy.oauth2.SpotifyOAuth(redirect_uri=f"{os.getenv('HOST')}/",
                                            scope=AUTH_SCOPE,
                                            cache_handler=spotipy.cache_handler.FlaskSessionCacheHandler(
-                                                       session))
+                                               session))
 
     def make_playlist(self, data: dict = None, lastfm_user_data: dict = None, tz_offset: int = None,
                       available_market: str = None):
@@ -74,7 +63,8 @@ class SpotifyClient:
         playlist_id = playlist.get("id")
         return playlist_id, playlist_url
 
-    def format_track_data(self, data: dict):
+    @staticmethod
+    def format_track_data(data: dict):
         this_year = datetime.today().year
         result = {}
         for year_data in data:

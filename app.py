@@ -1,5 +1,4 @@
 import os
-import spotipy
 import logging
 
 import controller
@@ -29,10 +28,7 @@ def index():
     stats = None
     tz_offset = None
     tz = None
-    use_cached_data = True  # TODO undo
     auth_url = None
-
-    print(f"request.method  = {request.method}")
 
     if "username" in session:
         username = session["username"]
@@ -49,11 +45,6 @@ def index():
 
     if request.method == 'GET':
         if request.args.get("code"):
-            print(f'code={request.args.get("code")}')
-            # sp_oauth = spotipy.oauth2.SpotifyOAuth(redirect_uri=f"{os.getenv('HOST')}/",
-            #                                        scope="playlist-modify-private",
-            #                                        cache_handler=spotipy.cache_handler.FlaskSessionCacheHandler(
-            #                                            session))
             sp_oauth = SpotifyClient.get_auth_manager(session)
             session["access_token"] = sp_oauth.get_access_token(request.args.get("code"), as_dict=False)
             spotify_client = SpotifyClient(sp_oauth)
@@ -62,6 +53,10 @@ def index():
                                                                  tz_offset=tz_offset)
             session["playlist_url"] = playlist_url
             return redirect('/')
+        elif request.args.get("clear"):
+            controller.clear_stats(username)
+            session.clear()
+            return render_template('index.html')
 
     elif request.method == 'POST':
         if request.form.get("tz_offset"):
@@ -84,39 +79,20 @@ def index():
                                                                  lastfm_user_data=lastfm_user_data,
                                                                  tz_offset=tz_offset,
                                                                  tz=tz)
-    print(f"username = {username}")
-    print(f"lastfm_user_data = {lastfm_user_data}")
-    print(f"auth_url = {auth_url}")
-    print(f"playlist_url = {playlist_url}")
 
     if username:
         if lastfm_user_data:
             message = f"{username} has been on Last.fm since " \
                       f"{datetime.strftime(lastfm_user_data.get('join_date').date(), '%-d %B %Y')}"
-            stats = controller.get_stats(lastfm_user_data, tz_offset, check_cache=use_cached_data)
+            stats = controller.get_stats(lastfm_user_data, tz_offset)
 
-            # sp_oauth = spotipy.oauth2.SpotifyOAuth(redirect_uri=f"{os.getenv('HOST')}/",
-            #                                        scope="playlist-modify-private",
-            #                                        cache_handler=spotipy.cache_handler.FlaskSessionCacheHandler(session))
             if not auth_url and not playlist_url:
-
                 sp_oauth = SpotifyClient.get_auth_manager(session)
                 auth_url = sp_oauth.get_authorize_url()
                 session["auth_url"] = auth_url
-                # print(auth_url)
         else:
             message = f"{username} not found on Last.fm"
     logger.info(f"Total time: {(datetime.now() - start_time).seconds} seconds)")
 
     return render_template('index.html', lastfm_user_data=lastfm_user_data, playlist_url=playlist_url, message=message,
                            auth_url=auth_url, stats=stats)
-
-
-# if __name__ == "__main__":
-#     # import time
-#     # import pytz
-#     # os.environ['TZ'] = "UTC"
-#     # time.tzset()
-#     from waitress import serve
-#     serve(app, host="0.0.0.0", port=8080)
-#     app.run(host='0.0.0.0', port=8080, debug=False)

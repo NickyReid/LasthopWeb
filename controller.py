@@ -1,7 +1,6 @@
 import logging
 import firebase_admin
 
-
 from dotenv import load_dotenv
 from datetime import datetime
 from firebase_admin import credentials
@@ -18,7 +17,7 @@ firebase_admin.initialize_app(cred)
 firebase_client = FirebaseClient()
 
 
-def get_lastfm_user_info(username):
+def get_lastfm_user_info(username: str):
     start_time = datetime.now()
     user_info = None
     user = get_or_create_user(username)
@@ -28,7 +27,7 @@ def get_lastfm_user_info(username):
     return user_info
 
 
-def get_or_create_user(username):
+def get_or_create_user(username: str):
     user = firebase_client.get_user(username)
 
     if not user or not user.get("user_info"):
@@ -40,18 +39,20 @@ def get_or_create_user(username):
     return user
 
 
-def get_stats(lastfm_user_data, tz_offset, check_cache=False):
+def clear_stats(username: str):
+    firebase_client.clear_user_data(username)
+
+
+def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
     start_time = datetime.now()
     data = None
     if check_cache:
         cached_data = get_cached_stats(lastfm_user_data["username"])
-        print(f"len(cached_data) = {len(cached_data)}")
         if cached_data:
             date_cached = cached_data.get("date_cached")
             if date_cached and date_cached.date() == datetime.utcnow().date():
                 logger.info(f"Data cached {date_cached.date()} -> Returning cached data")
                 data = cached_data.get("data")
-                # print(data)
     if not data:
         lfm_client = LastfmClient(lastfm_user_data["username"], lastfm_user_data["join_date"], tz_offset)
         data = lfm_client.get_stats()
@@ -59,12 +60,12 @@ def get_stats(lastfm_user_data, tz_offset, check_cache=False):
     return data
 
 
-def get_cached_stats(username):
+def get_cached_stats(username: str):
     return firebase_client.get_user_data(username)
 
 
 def make_playlist(spotify_client: SpotifyClient, lastfm_user_data: dict = None, data: dict = None,
-                  tz_offset: int = None, tz: str =None):
+                  tz_offset: int = None, tz: str = None):
     if not data:
         data = get_cached_stats(lastfm_user_data["username"]).get("data")
     available_market = None   # TODO timezones to spotify available_markets

@@ -18,18 +18,21 @@ LAST_FM_BASE_URL = "http://ws.audioscrobbler.com/2.0"
 HEADERS = {'User-Agent': "LasthopWeb/1.0"}
 STATS_START_DATE = datetime.utcnow()
 ADD_ARTIST_TAGS = True
+INCLUDE_THIS_YEAR = False
 
 
 class LastfmClient:
-    def __init__(self, lastfm_username, lastfm_join_date, tz_offset=0):
+    def __init__(self, lastfm_username: str, lastfm_join_date: datetime, tz_offset: int = 0):
         self.username = lastfm_username
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
-        today = STATS_START_DATE.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
-        self.stats_start_date = today.replace(year=today.year - 1)
-        logger.debug(f"Stats start date for {lastfm_username}: {self.stats_start_date}")
         self.tz_offset = tz_offset or 0
-        # self.firebase_client = FirebaseClient()
+        today = STATS_START_DATE.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
+        if INCLUDE_THIS_YEAR:
+            self.stats_start_date = today
+        else:
+            self.stats_start_date = today.replace(year=today.year - 1)
+        logger.debug(f"Stats start date for {lastfm_username}: {self.stats_start_date}")
 
     @classmethod
     @retry(RetryException, tries=3, delay=1, backoff=3, _logger=logger)
@@ -62,22 +65,12 @@ class LastfmClient:
         return summary
 
     @classmethod
-    def get_lastfm_user_data(cls, username):
+    def get_lastfm_user_data(cls, username: str):
         """
         Get the User's Last.fm profile information
-        :return: Dict with user's username, join date, real name and total number of tracks played
         """
         logger.info(f"Getting last.fm user data for {username}")
         api_response = cls.last_fm_api_query(api_method="user.getinfo", username=username)
-        # print(f"api_response = {api_response}")
-        # api_url = (
-        #     f"{LAST_FM_BASE_URL}/?method=user.getinfo"
-        #     f"&user={username}"
-        #     f"&api_key={LAST_FM_API_KEY}"
-        #     f"&format=json"
-        # )
-        # api_response = requests.get(api_url, headers=HEADERS).json()
-
         if not api_response.get("user"):
             return {}
         return {
@@ -89,7 +82,7 @@ class LastfmClient:
             "total_tracks": int(api_response["user"].get("playcount")),
         }
 
-    def summarize_data(self, data):
+    def summarize_data(self, data: dict):
         logger.info(f"Summarizing data for {self.username}...")
         result = []
         for line in data:
@@ -147,26 +140,6 @@ class LastfmClient:
 
         for job in jobs:
             job.join()
-
-        # if ADD_ARTIST_TAGS:
-            # print(f"ADD_ARTIST_TAGS {result}")
-            # for year in result:
-                # print(year["data"])
-                # top_artist = year["data"][0]["artist"]
-                # print(top_artist)
-                # for line in year.get("data"):
-                # for day, data in year.items():
-                #     print(day)
-                #     print(line)
-                #     top_artist = line["artist"]
-
-                #     top_tag = self.get_top_tag_for_artist(top_artist)
-                #     if top_tag:
-                #         year["tag"] = top_tag
-
-
-
-
         return result
 
     def get_list_of_dates(self):
@@ -177,7 +150,7 @@ class LastfmClient:
             date_to_process = date_to_process.replace(year=date_to_process.year - 1)
         return days
 
-    def get_data_for_day(self, day, queue):
+    def get_data_for_day(self, day: datetime, queue: multiprocessing.Queue):
         raw_data = self.get_lastfm_tracks_for_day(day)
         data = []
         for line in raw_data:
@@ -203,11 +176,6 @@ class LastfmClient:
             queue.put(result)
 
     def get_lastfm_tracks_for_day(self, date: datetime) -> list:
-        """
-        Get and format Last.fm data into a list of dictionaries.
-        :param date: Day for which to get data
-        :return: List of track information dictionaries
-        """
         lastfm_response = self.lastfm_api_get_tracks(date, 1)
         lastfm_tracks = lastfm_response.get("recenttracks", {}).get("track")
         num_pages = int(lastfm_response.get("recenttracks", {}).get("@attr", {}).get("totalPages", 0))
@@ -224,16 +192,16 @@ class LastfmClient:
             if lastfm_tracks and len(lastfm_tracks) > 0:
                 #  Remove currently playing song from past results
                 if (
-                    lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
-                    and date.date() != datetime.today().date()
+                        lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
+                        and date.date() != datetime.today().date()
                 ):
                     del lastfm_tracks[0]
                 #  Remove duplicated playing song from current results
                 elif (
-                    lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
-                    and date.date() == datetime.today().date()
-                    and len(lastfm_tracks) > 1
-                    and lastfm_tracks[0].get("name") == lastfm_tracks[1].get("name")
+                        lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
+                        and date.date() == datetime.today().date()
+                        and len(lastfm_tracks) > 1
+                        and lastfm_tracks[0].get("name") == lastfm_tracks[1].get("name")
                 ):
                     del lastfm_tracks[0]
         return lastfm_tracks
@@ -264,10 +232,10 @@ class LastfmClient:
         :return: JSON response from API.
         """
         date_start = (
-            date.replace(hour=0)
-            .replace(minute=0)
-            .replace(second=0)
-            .replace(microsecond=0) + timedelta(minutes=self.tz_offset)
+                date.replace(hour=0)
+                .replace(minute=0)
+                .replace(second=0)
+                .replace(microsecond=0) + timedelta(minutes=self.tz_offset)
         )
         date_start_epoch = int(date_start.timestamp())
         date_end = date_start + timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)

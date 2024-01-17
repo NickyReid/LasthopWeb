@@ -1,9 +1,11 @@
 import os
 import logging
 
+import pytz
+
 import controller
 from clients.spotify_client import SpotifyClient
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, session
 
@@ -29,6 +31,7 @@ def index():
     tz_offset = None
     tz = None
     auth_url = None
+    today = None
 
     if "username" in session:
         username = session["username"]
@@ -87,7 +90,7 @@ def index():
             message = f"{username} has been on Last.fm since " \
                       f"{datetime.strftime(lastfm_user_data.get('join_date').date(), '%-d %B %Y')}"
             stats = controller.get_stats(lastfm_user_data, tz_offset)
-
+            today = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
             if not auth_url and not playlist_url:
                 sp_oauth = SpotifyClient.get_auth_manager(session)
                 auth_url = sp_oauth.get_authorize_url()
@@ -95,6 +98,5 @@ def index():
         else:
             message = f"{username} not found on Last.fm"
     logger.info(f"Total time: {(datetime.now() - start_time).seconds} seconds)")
-
     return render_template('index.html', lastfm_user_data=lastfm_user_data, playlist_url=playlist_url, message=message,
-                           auth_url=auth_url, stats=stats)
+                           auth_url=auth_url, stats=stats, today=today)

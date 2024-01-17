@@ -222,7 +222,7 @@ class LastfmClient:
                     break
             if top_tag:
                 firebase_client.set_artist_tag(artist, top_tag)
-        return top_tag
+        return top_tag.lower()
 
     def lastfm_api_get_tracks(self, date: datetime, page_num: int) -> dict:
         """

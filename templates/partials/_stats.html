@@ -6,7 +6,7 @@
         {% else %}
         {{ lastfm_user_data.username }}'s
         {% endif %}
-        listening history for {{ stats[0]['day'].strftime('%-d %B') }}
+        listening history for {{ today.strftime('%-d %B') }}
     </h4>
 
     {% include 'partials/_playlist_buttons.html' %}

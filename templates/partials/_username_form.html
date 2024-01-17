@@ -1,0 +1,27 @@
+<form id="usernameForm" method="post">
+    <div class="row input-group-newsletter">
+        <div class="col"><input class="form-control" id="username" name="username"
+                                placeholder="Last.fm username"
+                                aria-label="Last.fm username" data-sb-validations="required,"/>
+        </div>
+        <input id="tz-offset" name="tz_offset" type="hidden">
+        <input id="tz" name="tz" type="hidden">
+        <script>
+                                        var tz_offset = new Date().getTimezoneOffset();
+                                        var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                                        console.log("Timezone offset: " + tz_offset);
+                                        console.log("Timezone: " + tz);
+                                        document.getElementById('tz-offset').value = tz_offset;
+                                        document.getElementById('tz').value = tz;
+
+                    </script>
+        <div class="col-auto"><input class="btn btn-primary" id="submitButton" type="submit"></div>
+        <div class="invalid-feedback mt-2" data-sb-feedback="email:required">Last.fm username is required
+        </div>
+
+    </div>
+</form>
+<p class="mb-2" style="font-size: small;">{% if message %}
+    {{ message }}
+    {% endif %}
+</p>

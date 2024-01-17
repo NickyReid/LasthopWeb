@@ -16,14 +16,14 @@
                 {{ artist_data['artist'] }}
                 [{{ artist_data['track_data']['playcount'] }}]
             </summary>
-            <p style="margin-left: 3%;margin-top: 0%;margin-bottom: 1%">
+            <div style="margin-left: 3%;margin-top: 0%;margin-bottom: 1%">
                 {% for track_data in artist_data['track_data']['tracks'] %}
                 {% if track_data["date"] %}
-                <span style="font-size: small;"> [{{ track_data["date"].strftime('%H:%M') }}]</span>
+                <span style="font-size: x-small;"> [{{ track_data["date"].strftime('%H:%M') }}]</span>
                 {% endif %}
-                {{ track_data["track_name"] }}<br/>
+                <span style="font-size: small;">{{ track_data["track_name"] }}</span><br/>
                 {% endfor %}
-            </p>
+            </div>
         </details>
         {% endfor %}
     </details>

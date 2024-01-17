@@ -1,0 +1,22 @@
+<div class="masthead-content text-white" style="    padding-left: 15px;">
+
+    <p>{{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }} </p>
+
+    {% include 'partials/_playlist_buttons.html' %}
+
+    <label for="artist-view-checkbox">
+        <input type="checkbox" id="artist-view-checkbox" name="artist_view_checkbox" onclick="toggleStatsView()"
+               checked> Top artist view
+    </label>
+    <div id="stats-artist-view" style="display:block;">
+        {% include 'partials/_stats_top_artist_view.html' %}
+    </div>
+    <div id="stats-chrono-view" style="display:none;">
+        {% include 'partials/_stats_chronological_view.html' %}
+    </div>
+
+    <div class="container-fluid px-4 px-lg-0" style="padding-top: 50px;">
+        {% include 'partials/_username_form.html' %}
+    </div>
+
+</div>

@@ -1,0 +1,22 @@
+<div class="container-fluid px-4 px-lg-0">
+
+    <div style="margin-bottom: 5%;">
+        {% if playlist_url %}
+        <div class="row">
+            <div class="col">
+                <a class="btn btn-primary" href="{{ playlist_url }}">Open Playlist</a>
+            </div>
+            <div class="col">
+                <input type="hidden" name="make_playlist" value="true">
+                <input class="btn btn-primary" type="submit" value="Remake Playlist">
+            </div>
+        </div>
+
+    </div>
+
+    {% elif lastfm_user_data and stats %}
+    <div class="container-fluid px-4 px-lg-0">
+        <a class="btn btn-primary" href="{{ auth_url }}">Make Playlist</a>
+    </div>
+    {% endif %}
+</div>

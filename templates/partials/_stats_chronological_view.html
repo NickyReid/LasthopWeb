@@ -4,13 +4,13 @@
     <details>
         <summary>
             <strong>{{ year_data['day'].strftime('%Y') }}</strong>
-            <span style="font-size: x-smallx;">[{{ year_data['day'].strftime('%a') }}]</span>
+            <span>[{{ year_data['day'].strftime('%a') }}]</span>
             <span>{{ year_data['scrobble_list']|length }} scrobbles</span>
         </summary>
         <div style="margin-left: 3%;margin-top: 0%;margin-bottom: 1%">
             {% for track_data in year_data['scrobble_list'] %}
-                <span style="font-size: small;"> [{{ track_data["date"].strftime('%H:%M') }}]</span>
-                {{ track_data["artist"] }} -  {{ track_data["track_name"] }}
+                <span style="font-size: x-small;"> [{{ track_data["date"].strftime('%H:%M') }}]</span>
+                <span style="font-size: small;">{{ track_data["artist"] }} -  {{ track_data["track_name"] }}</span>
                 <br/>
             {% endfor %}
         </div>

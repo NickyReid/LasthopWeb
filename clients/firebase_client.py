@@ -1,4 +1,7 @@
+import logging
 from firebase_admin import firestore
+
+logger = logging.getLogger(__name__)
 
 
 class FirebaseClient:
@@ -24,10 +27,9 @@ class FirebaseClient:
     def get_user_data(self, username):
         doc_ref = self.client.collection("users").document(username.lower())
         doc = doc_ref.get()
-        # dat = doc.get("data")
         return doc.to_dict()
 
     def set_user_data(self, username, data, date_cached=None):
-        print(f"Caching data for {username}...")
+        logger.debug(f"Caching data for {username}...")
         doc_ref = self.client.collection("users").document(username.lower())
         doc_ref.update({"data": data, "date_cached": date_cached})

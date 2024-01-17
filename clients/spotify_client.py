@@ -3,11 +3,13 @@ import os
 import math
 import spotipy
 import random
+import logging
 
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 HOST = os.getenv('HOST')
 PLAYLIST_SIZE_VAR = 50
@@ -20,10 +22,10 @@ class SpotifyClient:
     def make_playlist(self, data: dict = None, lastfm_user_data: dict = None, tz_offset: int = None,
                       available_market: str = None):
         if not data:
-            print(f"No data for {lastfm_user_data['username']}")
+            logger.info(f"No data for {lastfm_user_data['username']}")
             return None, None
         start_time = datetime.now()
-        print(f"Making Playlist")
+        logger.info(f"Making playlist for {lastfm_user_data['username']}")
         track_data = self.format_track_data(data)
         if not track_data:
             return None, None
@@ -31,7 +33,7 @@ class SpotifyClient:
         playlist_id, playlist_url = self.create_playlist(lastfm_user_data, tz_offset)
         self.search_for_tracks(playlist_id, track_data, available_market)
         if playlist_url:
-            print(f"Playlist created {playlist_url} (took {(datetime.now() - start_time).seconds} seconds)")
+            logger.info(f"Playlist created {playlist_url} (took {(datetime.now() - start_time).seconds} seconds)")
         return playlist_id, playlist_url
 
     def create_playlist(self, lastfm_user_data: dict = None, tz_offset: int = None):
@@ -77,7 +79,7 @@ class SpotifyClient:
 
     def search_for_tracks(self, playlist_id: int, artist_tracks: dict, available_market: str = None):
         tracks_per_year = (math.ceil(PLAYLIST_SIZE_VAR / len(artist_tracks)))
-        print(f"Years of data = {len(artist_tracks)} -> Tracks per year = {tracks_per_year}")
+        logger.info(f"Years of data = {len(artist_tracks)} -> Tracks per year = {tracks_per_year}")
         added_artists = []
         for year, artist_track_data in artist_tracks.items():
             tracks_added_this_year = 0
@@ -100,7 +102,7 @@ class SpotifyClient:
                 else:
                     current_search = selected_track
                     for retry_track in tracks[1:]:
-                        print(f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'")
+                        logger.info(f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'")
                         current_search = retry_track
                         found_track_uri = self.spotify_search(artist, retry_track, available_market)
                         if found_track_uri:
@@ -110,12 +112,12 @@ class SpotifyClient:
                             added_artists.append(artist)
                             break
                 if not found_track_uri:
-                    print(f"Couldn't find any tracks for {artist} :(")
-            print(f"Tracks added for {year.year}: {tracks_added_this_year}")
-            print()
+                    logger.info(f"Couldn't find any tracks for {artist} :(")
+            logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}\n")
 
-    def add_track_to_playlist(self, spotify_client, playlist_id, track_uri, track_name, artist):
-        print(f"Adding '{track_name}' by {artist}")
+    @staticmethod
+    def add_track_to_playlist(spotify_client, playlist_id, track_uri, track_name, artist):
+        logger.info(f"Adding '{track_name}' by {artist}")
         spotify_client.playlist_add_items(playlist_id, [track_uri])
 
     def spotify_search(self, artist, track_name, available_market: str = None):
@@ -154,6 +156,6 @@ class SpotifyClient:
                 track_name_without_brackets = re.sub("[\(\[].*?[\)\]]", "", track_name)
                 return self.spotify_search(artist, track_name_without_brackets, available_market)
 
-        except Exception as e:
-            print(f"Error: {e} {search_result}")
+        except Exception:
+            logger.exception(f"Unhandled Spotify search error: {search_result}")
 

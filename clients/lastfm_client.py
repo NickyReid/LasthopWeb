@@ -2,10 +2,14 @@ import os
 import pytz
 import requests
 import multiprocessing
+import logging
 
+from clients import RetryException, retry
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-from firebase_client import FirebaseClient
+from clients.firebase_client import FirebaseClient
+
+logger = logging.getLogger(__name__)
 
 
 load_dotenv()
@@ -15,45 +19,77 @@ HEADERS = {'User-Agent': "LasthopWeb/1.0"}
 STATS_START_DATE = datetime.utcnow()
 
 
-def get_lastfm_user_data(username):
-    """
-    Get the User's Last.fm profile information
-    :return: Dict with user's username, join date, real name and total number of tracks played
-    """
-    print(f"Getting last.fm user data for {username}")
-    api_url = (
-        f"{LAST_FM_BASE_URL}/?method=user.getinfo"
-        f"&user={username}"
-        f"&api_key={LAST_FM_API_KEY}"
-        f"&format=json"
-    )
-    api_response = requests.get(api_url, headers=HEADERS).json()
-
-    if not api_response.get("user"):
-        return {}
-    return {
-        "username": api_response["user"]["name"],
-        "join_date": datetime.fromtimestamp(
-            float(api_response["user"].get("registered").get("unixtime"))
-        ),
-        "real_name": api_response["user"].get("realname"),
-        "total_tracks": int(api_response["user"].get("playcount")),
-    }
-
-
-class DataCompiler:
+class LastfmClient:
     def __init__(self, lastfm_username, lastfm_join_date, tz_offset=0):
         self.username = lastfm_username
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
-        self.stats_start_date = STATS_START_DATE.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
-        print(f"stats_start_date: {self.stats_start_date}")
-        self.stats_start_date = self.stats_start_date.replace(year=self.stats_start_date.year - 1)
-        print(f"stats_start_date - 1: {self.stats_start_date}")
+        today = STATS_START_DATE.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
+        self.stats_start_date = today.replace(year=today.year - 1)
+        logger.debug(f"Stats start date for {lastfm_username}: {self.stats_start_date}")
         self.tz_offset = tz_offset or 0
 
+    @classmethod
+    @retry(RetryException, tries=3, delay=1, backoff=3, _logger=logger)
+    def last_fm_api_query(cls, api_method: str, **args) -> dict:
+        """
+        A GET request to Last.fm API
+        """
+        params = [f"&{k.replace('_', '')}={v}" for k, v in args.items()]
+        api_url = (
+            f"{LAST_FM_BASE_URL}/?method={api_method}"
+            f"&api_key={LAST_FM_API_KEY}"
+            f"&format=json"
+            f"{''.join(params)}"
+        )
+        try:
+            response = requests.get(api_url, headers=HEADERS)
+            if response.status_code in RetryException.retry_codes:
+                raise RetryException(f"WARNING: Last.fm status code for {api_method} was {response.status_code}")
+            return response.json()
+        except RetryException:
+            raise
+        except Exception:
+            logger.exception(f"Unhandled exception for Last.fm {api_method}")
+
+    def get_stats(self):
+        data_for_all_days = self.get_data_for_all_days()
+        summary = self.summarize_data(data_for_all_days)
+        stats_date_created = datetime.utcnow()
+        firebase_client = FirebaseClient()
+        firebase_client.set_user_data(self.username, summary, stats_date_created)
+        return summary
+
+    @classmethod
+    def get_lastfm_user_data(cls, username):
+        """
+        Get the User's Last.fm profile information
+        :return: Dict with user's username, join date, real name and total number of tracks played
+        """
+        logger.info(f"Getting last.fm user data for {username}")
+        api_response = cls.last_fm_api_query(api_method="user.getinfo", username=username)
+        # print(f"api_response = {api_response}")
+        # api_url = (
+        #     f"{LAST_FM_BASE_URL}/?method=user.getinfo"
+        #     f"&user={username}"
+        #     f"&api_key={LAST_FM_API_KEY}"
+        #     f"&format=json"
+        # )
+        # api_response = requests.get(api_url, headers=HEADERS).json()
+
+        if not api_response.get("user"):
+            return {}
+        return {
+            "username": api_response["user"]["name"],
+            "join_date": datetime.fromtimestamp(
+                float(api_response["user"].get("registered").get("unixtime"))
+            ),
+            "real_name": api_response["user"].get("realname"),
+            "total_tracks": int(api_response["user"].get("playcount")),
+        }
+
     def summarize_data(self, data):
-        print(f"Summarizing data for {self.username}...")
+        logger.info(f"Summarizing data for {self.username}...")
         result = []
         for line in data:
             day = (line["day"] - timedelta(minutes=self.tz_offset)).replace(tzinfo=None)
@@ -89,7 +125,7 @@ class DataCompiler:
         return sorted_result
 
     def get_data_for_all_days(self):
-        print(f"Getting data from Last.fm for {self.username}...")
+        logger.info(f"Getting data from Last.fm for {self.username}...")
         days = self.get_list_of_dates()
         jobs = []
         queue = multiprocessing.Queue()
@@ -150,12 +186,12 @@ class DataCompiler:
         :param date: Day for which to get data
         :return: List of track information dictionaries
         """
-        lastfm_response = self.lastfm_api_query(date, 1)
+        lastfm_response = self.lastfm_api_get_tracks(date, 1)
         lastfm_tracks = lastfm_response.get("recenttracks", {}).get("track")
         num_pages = int(lastfm_response.get("recenttracks", {}).get("@attr", {}).get("totalPages", 0))
         if num_pages > 1:
             for page_num in range(2, num_pages + 1):
-                lastfm_response = self.lastfm_api_query(date, page_num)
+                lastfm_response = self.lastfm_api_get_tracks(date, page_num)
                 lastfm_tracks.extend(
                     lastfm_response.get("recenttracks", {}).get("track")
                 )
@@ -180,19 +216,20 @@ class DataCompiler:
                     del lastfm_tracks[0]
         return lastfm_tracks
 
-    @staticmethod
-    def get_top_tag_for_artist(artist: str) -> str:
-        print(f"Getting top tag for {artist}...")
+    def get_top_tag_for_artist(self, artist: str) -> str:
+        logger.info(f"Getting top tag for {artist}...")
         top_tag = None
-        api_url = (
-            f"{LAST_FM_BASE_URL}/?method=artist.gettoptags"
-            f"&artist={artist}&"
-            f"api_key=8257fbe241e266367f27e30b0e866aba&"
-            f"autocorrect=1&"
-            f"&format=json"
-        )
-        response = requests.get(api_url, headers=HEADERS).json()
-        tag_list = response.get("toptags", {}).get("tag", [])
+        api_response = self.last_fm_api_query(api_method="artist.gettoptags", artist="artist")
+        # print(api_response)
+        # api_url = (
+        #     f"{LAST_FM_BASE_URL}/?method=artist.gettoptags"
+        #     f"&artist={artist}&"
+        #     f"api_key=8257fbe241e266367f27e30b0e866aba&"
+        #     f"autocorrect=1&"
+        #     f"&format=json"
+        # )
+        # response = requests.get(api_url, headers=HEADERS).json()
+        tag_list = api_response.get("toptags", {}).get("tag", [])
         for tag in tag_list:
             tag_name = tag.get("name")
             if "seen live" not in tag_name:
@@ -200,7 +237,7 @@ class DataCompiler:
                 break
         return top_tag
 
-    def lastfm_api_query(self, date: datetime, page_num: int) -> dict:
+    def lastfm_api_get_tracks(self, date: datetime, page_num: int) -> dict:
         """
         Get data from Last.fm api
         :param date: Day for which to get data
@@ -218,29 +255,22 @@ class DataCompiler:
         date_end_epoch = int(
             date_end.timestamp()
         )
-        print(date_start)
-        api_url = (
-            f"{LAST_FM_BASE_URL}/?method=user.getrecenttracks"
-            f"&user={self.username}&"
-            f"api_key=8257fbe241e266367f27e30b0e866aba&"
-            f"&from={date_start_epoch}"
-            f"&to={date_end_epoch}"
-            f"&limit=200"
-            f"&page={page_num}"
-            f"&format=json"
-        )
-        response = requests.get(api_url, headers=HEADERS).json()
-        return response
+        logger.debug(f"Last.fm query start date: {date_start}")
+        api_response = self.last_fm_api_query(api_method="user.getrecenttracks", username=self.username,
+                                              _from=date_start_epoch, to=date_end_epoch, page=page_num)
+        # print(api_response)
+        # api_url = (
+        #     f"{LAST_FM_BASE_URL}/?method=user.getrecenttracks"
+        #     f"&user={self.username}&"
+        #     f"api_key=8257fbe241e266367f27e30b0e866aba&"
+        #     f"&from={date_start_epoch}"
+        #     f"&to={date_end_epoch}"
+        #     f"&limit=200"
+        #     f"&page={page_num}"
+        #     f"&format=json"
+        # )
+        # response = requests.get(api_url, headers=HEADERS).json()
+        return api_response
 
 
-def get_stats(lastfm_user_data, tz_offset):
-    data_compiler = DataCompiler(
-        lastfm_user_data["username"], lastfm_user_data["join_date"], tz_offset
-    )
-    data_for_all_days = data_compiler.get_data_for_all_days()
-    summary = data_compiler.summarize_data(data_for_all_days)
-    stats_date_created = datetime.utcnow()
-    firebase_client = FirebaseClient()
-    firebase_client.set_user_data(lastfm_user_data["username"], summary, stats_date_created)
-    return summary
 

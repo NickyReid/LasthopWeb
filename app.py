@@ -1,5 +1,6 @@
 import os
 import spotipy
+import logging
 
 import controller
 from clients.spotify_client import SpotifyClient
@@ -10,6 +11,12 @@ from flask import Flask, render_template, request, redirect, session
 
 load_dotenv()
 app = Flask(__name__)
+
+if os.getenv("DEBUG"):
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+
 
 app.secret_key = os.getenv('SESSION_SECRET_KEY')
 
@@ -23,7 +30,7 @@ def index():
     stats = None
     tz_offset = None
     tz = None
-    # use_cached_data = True
+    use_cached_data = False  # TODO undo
 
     cache_handler = spotipy.cache_handler.FlaskSessionCacheHandler(session)
     sp_oauth = spotipy.oauth2.SpotifyOAuth(redirect_uri=f"{os.getenv('HOST')}/",
@@ -75,7 +82,7 @@ def index():
         if lastfm_user_data:
             message = f"{username} has been on Last.fm since " \
                       f"{datetime.strftime(lastfm_user_data.get('join_date').date(), '%-d %B %Y')}"
-            stats = controller.get_stats(lastfm_user_data, tz_offset, cached=True)
+            stats = controller.get_stats(lastfm_user_data, tz_offset, cached=use_cached_data)
         else:
             message = f"{username} not found on Last.fm"
     return render_template('index.html', lastfm_user_data=lastfm_user_data, playlist_url=playlist_url, message=message,

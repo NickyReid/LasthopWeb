@@ -40,7 +40,8 @@ def get_or_create_user(username: str):
 
 
 def clear_stats(username: str):
-    firebase_client.clear_user_data(username)
+    if username:
+        firebase_client.clear_user_data(username)
 
 
 def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):

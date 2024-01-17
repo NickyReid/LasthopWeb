@@ -1,18 +1,13 @@
 <div class="container-fluid px-4 px-lg-0">
 
-    <div style="margin-bottom: 5%;">
-        {% if playlist_url %}
-        <div class="row">
-            <div class="col">
-                <a class="btn btn-primary" href="{{ playlist_url }}" target="_blank">Open Playlist</a>
-            </div>
-        </div>
-
+     {% if playlist_url %}
+    <div style="margin: auto;width: 50%;padding: 10px">
+        <a class="btn btn-primary" href="{{ playlist_url }}" target="_blank">Open Playlist</a>
     </div>
 
     {% elif lastfm_user_data and stats %}
     <div class="container-fluid px-4 px-lg-0" style="margin: auto;width: 50%;padding: 10px;">
-        <button id="make-playlist-btn" class="btn btn-primary" onclick="loadingButton('make-playlist-btn', '{{ auth_url }}', 'Making playlist... ')">Make a Playlist</button>
+        <button id="make-playlist-btn" class="btn btn-primary" onclick="loadingButton('make-playlist-btn', '{{ auth_url }}', 'Making playlist... ')">Make Playlist</button>
     </div>
     {% endif %}
 </div>

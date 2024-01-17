@@ -59,6 +59,8 @@ def index():
             return render_template('index.html')
 
     elif request.method == 'POST':
+        session.clear()
+        playlist_url = None
         if request.form.get("tz_offset"):
             session["tz_offset"] = tz_offset = int(request.form["tz_offset"])
         if request.form.get("tz"):

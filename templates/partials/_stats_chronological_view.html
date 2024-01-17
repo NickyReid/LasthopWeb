@@ -1,19 +1,26 @@
 <div>
+    <div id="tracks-header" class="row" style="padding-top:5%;padding-bottom:5%;">
+        <div style="width:20%;"><strong> Year </strong></div>
+        <div style="width:50%;"><strong> Week Day </strong></div>
+        <div style="width:30%;"><strong> Scrobbles </strong></div>
+    </div>
     {% for year_data in stats %}
     {% if year_data['data'] %}
     <details>
         <summary>
-            <strong>{{ year_data['day'].strftime('%Y') }}</strong>
-            <span>[{{ year_data['day'].strftime('%a') }}]</span>
-            <span>{{ year_data['scrobble_list']|length }} scrobbles</span>
+            <div id="tracks-summary" class="row">
+                <div style="width:20%;"> <strong>{{ year_data['day'].strftime('%Y') }}</strong></div>
+                <div style="width:50%;"> {{ year_data['day'].strftime('%A') }} </div>
+                <div style="width:30%;font-size: small;"> {{ year_data['scrobble_list']|length }} </div>
+            </div>
         </summary>
-        <div style="margin-left: 3%;margin-top: 0%;margin-bottom: 1%">
-            {% for track_data in year_data['scrobble_list'] %}
-            <span style="font-size: x-small;"> [{{ track_data["date"].strftime('%H:%M') }}]</span>
-            <span style="font-size: small;">{{ track_data["artist"] }} -  {{ track_data["track_name"] }}</span>
-            <br/>
-            {% endfor %}
+        {% for track_data in year_data['scrobble_list'] %}
+        <div id="tracks-detail" class="row">
+            <div style="width:20%;font-size: x-small;text-align: right;"> [{{ track_data["date"].strftime('%H:%M') }}] </div>
+            <div style="width:80%;">{{ track_data["artist"] }} -  {{ track_data["track_name"] }}</div>
         </div>
+        {% endfor %}
+
     </details>
     {% endif %}
     {% endfor %}

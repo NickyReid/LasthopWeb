@@ -13,11 +13,35 @@ logger = logging.getLogger(__name__)
 
 HOST = os.getenv('HOST')
 PLAYLIST_SIZE_VAR = 50
+AUTH_SCOPE = "playlist-modify-private"
+
+
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            # don't want __init__ to be called every time
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
 
 
 class SpotifyClient:
-    def __init__(self, auth_manager):
+    def __init__(self, auth_manager=None, session=None):
+        if not auth_manager and not session:
+            raise Exception("Auth manager or session required")
+        if not auth_manager:
+            auth_manager = self.get_auth_manager(session)
+        self.auth_manager = auth_manager
         self.spotify_client = spotipy.Spotify(auth_manager=auth_manager)
+
+    @staticmethod
+    def get_auth_manager(session):
+        print("!!!SPOTIFY AUTH")
+        return spotipy.oauth2.SpotifyOAuth(redirect_uri=f"{os.getenv('HOST')}/",
+                                           scope=AUTH_SCOPE,
+                                           cache_handler=spotipy.cache_handler.FlaskSessionCacheHandler(
+                                                       session))
 
     def make_playlist(self, data: dict = None, lastfm_user_data: dict = None, tz_offset: int = None,
                       available_market: str = None):

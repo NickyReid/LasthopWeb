@@ -30,6 +30,7 @@ def get_lastfm_user_info(username):
 
 def get_or_create_user(username):
     user = firebase_client.get_user(username)
+
     if not user or not user.get("user_info"):
         lastfm_user_info = LastfmClient.get_lastfm_user_data(username)
         if lastfm_user_info and lastfm_user_info.get("username"):
@@ -39,16 +40,18 @@ def get_or_create_user(username):
     return user
 
 
-def get_stats(lastfm_user_data, tz_offset, cached=False):
+def get_stats(lastfm_user_data, tz_offset, check_cache=False):
     start_time = datetime.now()
     data = None
-    if cached:
+    if check_cache:
         cached_data = get_cached_stats(lastfm_user_data["username"])
+        print(f"len(cached_data) = {len(cached_data)}")
         if cached_data:
             date_cached = cached_data.get("date_cached")
             if date_cached and date_cached.date() == datetime.utcnow().date():
                 logger.info(f"Data cached {date_cached.date()} -> Returning cached data")
                 data = cached_data.get("data")
+                # print(data)
     if not data:
         lfm_client = LastfmClient(lastfm_user_data["username"], lastfm_user_data["join_date"], tz_offset)
         data = lfm_client.get_stats()

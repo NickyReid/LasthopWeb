@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 HOST = os.getenv('HOST')
-PLAYLIST_SIZE_VAR = 70
+PLAYLIST_SIZE_VAR = 50
 
 
 class SpotifyClient:
@@ -76,7 +76,7 @@ class SpotifyClient:
         return result
 
     def search_for_tracks(self, playlist_id: int, artist_tracks: dict, available_market: str = None):
-        tracks_per_year = (math.ceil(PLAYLIST_SIZE_VAR / len(artist_tracks))) * 2
+        tracks_per_year = (math.ceil(PLAYLIST_SIZE_VAR / len(artist_tracks)))
         print(f"Years of data = {len(artist_tracks)} -> Tracks per year = {tracks_per_year}")
         added_artists = []
         for year, artist_track_data in artist_tracks.items():

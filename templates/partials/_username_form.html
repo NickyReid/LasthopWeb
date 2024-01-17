@@ -1,4 +1,4 @@
-<form id="usernameForm" method="post">
+<form id="usernameForm" method="post" onsubmit="return formLoadingButton('submitButton', 'usernameForm', 'username', 'Loading...')" >
     <div class="row input-group-newsletter">
         <div class="col"><input class="form-control" id="username" name="username"
                                 placeholder="Last.fm username"
@@ -15,7 +15,7 @@
                                         document.getElementById('tz').value = tz;
 
                     </script>
-        <div class="col-auto"><input class="btn btn-primary" id="submitButton" type="submit"></div>
+        <div class="col-auto"><input class="btn btn-primary" id="submitButton" type="submit" value="Hop" ></div>
         <div class="invalid-feedback mt-2" data-sb-feedback="email:required">Last.fm username is required
         </div>
 

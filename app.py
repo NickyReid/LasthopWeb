@@ -2,7 +2,7 @@ import os
 import spotipy
 
 import controller
-from spotify_client import SpotifyClient
+from clients.spotify_client import SpotifyClient
 from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, session
@@ -23,7 +23,7 @@ def index():
     stats = None
     tz_offset = None
     tz = None
-    use_cached_data = True
+    # use_cached_data = True
 
     cache_handler = spotipy.cache_handler.FlaskSessionCacheHandler(session)
     sp_oauth = spotipy.oauth2.SpotifyOAuth(redirect_uri=f"{os.getenv('HOST')}/",
@@ -57,10 +57,9 @@ def index():
             session["tz"] = tz = request.form["tz"]
 
         if request.form.get("username"):
-            use_cached_data = False
             username = request.form['username']
             session["username"] = username
-            lastfm_user_data = controller.get_lastfm_user_data(username)
+            lastfm_user_data = controller.get_lastfm_user_info(username)
             session["lastfm_user_data"] = lastfm_user_data
             if lastfm_user_data and lastfm_user_data.get("username"):
                 username = session["username"] = lastfm_user_data["username"]
@@ -76,7 +75,7 @@ def index():
         if lastfm_user_data:
             message = f"{username} has been on Last.fm since " \
                       f"{datetime.strftime(lastfm_user_data.get('join_date').date(), '%-d %B %Y')}"
-            stats = controller.get_stats(lastfm_user_data, tz_offset, cached=use_cached_data)
+            stats = controller.get_stats(lastfm_user_data, tz_offset, cached=True)
         else:
             message = f"{username} not found on Last.fm"
     return render_template('index.html', lastfm_user_data=lastfm_user_data, playlist_url=playlist_url, message=message,

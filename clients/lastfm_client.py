@@ -20,6 +20,7 @@ def get_lastfm_user_data(username):
     Get the User's Last.fm profile information
     :return: Dict with user's username, join date, real name and total number of tracks played
     """
+    print(f"Getting last.fm user data for {username}")
     api_url = (
         f"{LAST_FM_BASE_URL}/?method=user.getinfo"
         f"&user={username}"
@@ -46,6 +47,9 @@ class DataCompiler:
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
         self.stats_start_date = STATS_START_DATE.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
+        print(f"stats_start_date: {self.stats_start_date}")
+        self.stats_start_date = self.stats_start_date.replace(year=self.stats_start_date.year - 1)
+        print(f"stats_start_date - 1: {self.stats_start_date}")
         self.tz_offset = tz_offset or 0
 
     def summarize_data(self, data):
@@ -214,6 +218,7 @@ class DataCompiler:
         date_end_epoch = int(
             date_end.timestamp()
         )
+        print(date_start)
         api_url = (
             f"{LAST_FM_BASE_URL}/?method=user.getrecenttracks"
             f"&user={self.username}&"
@@ -234,7 +239,8 @@ def get_stats(lastfm_user_data, tz_offset):
     )
     data_for_all_days = data_compiler.get_data_for_all_days()
     summary = data_compiler.summarize_data(data_for_all_days)
+    stats_date_created = datetime.utcnow()
     firebase_client = FirebaseClient()
-    firebase_client.set_user_data(lastfm_user_data["username"], summary)
+    firebase_client.set_user_data(lastfm_user_data["username"], summary, stats_date_created)
     return summary
 

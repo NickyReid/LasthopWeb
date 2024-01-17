@@ -14,3 +14,25 @@
 		        statsChronoView.style.display = "block";
 		    }
         }
+
+        function loadingButton(btn_id, url=null, loading_msg="Please wait...") {
+           btn = document.getElementById(btn_id);
+           btn.innerHTML = loading_msg;
+           btn.disabled = true;
+           if (url){
+            window.open(url,"_self")
+           };
+         };
+
+        function formLoadingButton(btn_id, form_id, field_id, loading_msg="Please wait...") {
+           field = document.getElementById(field_id);
+           btn = document.getElementById(btn_id);
+           if (field.value != ""){
+               btn.value = loading_msg;
+               btn.disabled = true;
+               return true;
+           }
+           else{
+             return false;
+           };
+         };

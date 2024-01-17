@@ -1,6 +1,13 @@
 <div class="masthead-content text-white" style="    padding-left: 15px;">
 
-    <p>{{ lastfm_user_data.username }}'s listening history for {{ stats[0]['day'].strftime('%-d %B') }} </p>
+    <h4>
+        {% if lastfm_user_data.real_name %}
+        {{ lastfm_user_data.real_name }}'s
+        {% else %}
+        {{ lastfm_user_data.username }}'s
+        {% endif %}
+        listening history for {{ stats[0]['day'].strftime('%-d %B') }}
+    </h4>
 
     {% include 'partials/_playlist_buttons.html' %}
 

@@ -135,6 +135,7 @@ class SpotifyClient:
         spotify_client.playlist_add_items(playlist_id, [track_uri])
 
     def spotify_search(self, artist, track_name, available_market: str = None):
+        track_name = track_name[:75] if len(track_name) > 75 else track_name
         search_params = {"q": "track:" + f"{track_name} + {artist}", "type": "track"}
         if available_market:
             search_params.update({"market": available_market.upper()})

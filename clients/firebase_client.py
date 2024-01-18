@@ -41,7 +41,7 @@ class FirebaseClient(metaclass=Singleton):
     def set_user_data(self, username, data, date_cached=None):
         logger.debug(f"Caching data for {username}...")
         doc_ref = self.client.collection("users").document(username.lower())
-        doc_ref.update({"data": data, "date_cached": date_cached})
+        doc_ref.set({"data": data, "date_cached": date_cached}, merge=True)
 
     def clear_user_data(self, username):
         logger.debug(f"Clearing data for {username}...")

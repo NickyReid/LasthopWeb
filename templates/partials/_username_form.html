@@ -24,8 +24,4 @@
 <p class="mb-2" style="font-size: small;">{% if message %}
     {{ message }}
     {% endif %}
-    {% if lastfm_user_data and not stats %}
-    <br/>
-    No history found for {{ lastfm_user_data.username }}
-    {% endif %}
 </p>

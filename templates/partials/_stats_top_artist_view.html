@@ -1,9 +1,11 @@
 <div>
     <div id="top-artists-header" class="row" style="padding-top:5%;padding-bottom:5%;">
         <div style="width:20%;"><strong> Year </strong></div>
-        <div style="width:50%;"><strong> Top Artist </strong></div>
+        <div style="width:50%;"><strong> Top Artist </strong> </div>
         <div style="width:30%;"><strong> Genre </strong></div>
+
     </div>
+    <div style="font-size:xx-small;"> (Click to expand) </div>
     {% for year_data in stats %}
     {% if year_data['data'] %}
     <details>

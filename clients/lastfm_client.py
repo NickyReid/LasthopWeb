@@ -82,7 +82,7 @@ class LastfmClient:
             "total_tracks": int(api_response["user"].get("playcount")),
         }
 
-    def summarize_data(self, data: dict):
+    def summarize_data(self, data: list):
         logger.info(f"Summarizing data for {self.username}...")
         result = []
         for line in data:
@@ -222,7 +222,7 @@ class LastfmClient:
                     break
             if top_tag:
                 firebase_client.set_artist_tag(artist, top_tag)
-        return top_tag.lower()
+        return top_tag.lower() if top_tag else None
 
     def lastfm_api_get_tracks(self, date: datetime, page_num: int) -> dict:
         """

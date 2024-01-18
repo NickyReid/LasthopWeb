@@ -47,16 +47,18 @@ def clear_stats(username: str):
 def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
     start_time = datetime.now()
     data = None
-    if check_cache:
-        cached_data = get_cached_stats(lastfm_user_data["username"])
-        if cached_data:
-            date_cached = cached_data.get("date_cached")
-            if date_cached and date_cached.date() == datetime.utcnow().date():
-                logger.info(f"Data cached {date_cached.date()} -> Returning cached data")
-                data = cached_data.get("data")
-    if not data:
-        lfm_client = LastfmClient(lastfm_user_data["username"], lastfm_user_data["join_date"], tz_offset)
-        data = lfm_client.get_stats()
+    username = lastfm_user_data.get("username", "").lower()
+    if username:
+        if check_cache:
+            cached_data = get_cached_stats(username)
+            if cached_data:
+                date_cached = cached_data.get("date_cached")
+                if date_cached and date_cached.date() == datetime.utcnow().date():
+                    logger.info(f"Data cached {date_cached.date()} -> Returning cached data")
+                    data = cached_data.get("data")
+        if not data:
+            lfm_client = LastfmClient(username, lastfm_user_data["join_date"], tz_offset)
+            data = lfm_client.get_stats()
     logger.info(f"(get_stats took {(datetime.now() - start_time).seconds} seconds)")
     return data
 

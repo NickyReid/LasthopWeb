@@ -8,21 +8,24 @@ from clients import RetryException, retry
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from clients.firebase_client import FirebaseClient
+from clients.monitoring_client import GoogleMonitoringClient
 
 logger = logging.getLogger(__name__)
 
 
 load_dotenv()
-LAST_FM_API_KEY = os.getenv('LAST_FM_API_KEY')
+LAST_FM_API_KEY = os.getenv("LAST_FM_API_KEY")
 LAST_FM_BASE_URL = "http://ws.audioscrobbler.com/2.0"
-HEADERS = {'User-Agent': "LasthopWeb/1.0"}
+HEADERS = {"User-Agent": "LasthopWeb/1.0"}
 STATS_START_DATE = datetime.utcnow()
 ADD_ARTIST_TAGS = True
 INCLUDE_THIS_YEAR = False
 
 
 class LastfmClient:
-    def __init__(self, lastfm_username: str, lastfm_join_date: datetime, tz_offset: int = 0):
+    def __init__(
+        self, lastfm_username: str, lastfm_join_date: datetime, tz_offset: int = 0
+    ):
         self.username = lastfm_username
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
@@ -47,14 +50,20 @@ class LastfmClient:
             f"&format=json"
             f"{''.join(params)}"
         )
+
         try:
             response = requests.get(api_url, headers=HEADERS)
             if response.status_code in RetryException.retry_codes:
-                raise RetryException(f"WARNING:  {response.status_code} status code for {api_method}. {response.content}")
+                raise RetryException(
+                    f"WARNING:  {response.status_code} status code for {api_method}. {response.content}"
+                )
             return response.json()
+
         except RetryException:
+            GoogleMonitoringClient().increment_thread("retry-exception")
             raise
         except Exception:
+            GoogleMonitoringClient().increment_thread("lastfm-exception")
             logger.exception(f"Unhandled exception for Last.fm {api_method}")
 
     def get_stats(self):
@@ -70,7 +79,9 @@ class LastfmClient:
         Get the User's Last.fm profile information
         """
         logger.info(f"Getting last.fm user data for {username}")
-        api_response = cls.last_fm_api_query(api_method="user.getinfo", username=username)
+        api_response = cls.last_fm_api_query(
+            api_method="user.getinfo", username=username
+        )
         if not api_response.get("user"):
             return {}
         return {
@@ -96,11 +107,18 @@ class LastfmClient:
                 timestamp = scrobble["timestamp"]
                 if not timestamp:  # Don't add currently playing track to stats
                     continue
-                date = (datetime.fromtimestamp(int(timestamp), tz=pytz.UTC) - timedelta(minutes=self.tz_offset))
-                track_date_dict = {"track_name": track_name, "date": date, "artist": artist}
+                date = datetime.fromtimestamp(int(timestamp), tz=pytz.UTC) - timedelta(
+                    minutes=self.tz_offset
+                )
+                track_date_dict = {
+                    "track_name": track_name,
+                    "date": date,
+                    "artist": artist,
+                }
                 if not artist_scrobble_dict.get(artist):
                     artist_scrobble_dict[artist] = {
-                        "playcount": 1, "tracks": [track_date_dict]
+                        "playcount": 1,
+                        "tracks": [track_date_dict],
                     }
                 else:
                     artist_scrobble_dict[artist]["playcount"] += 1
@@ -108,14 +126,26 @@ class LastfmClient:
                 scrobble_list.append(track_date_dict)
             artist_scrobble_list = []
             for artist, track_data in artist_scrobble_dict.items():
-                artist_scrobble_list.append({"artist": artist, "track_data": track_data})
-            artist_scrobble_list = sorted(artist_scrobble_list, key=lambda d: d["track_data"]["playcount"], reverse=True)
+                artist_scrobble_list.append(
+                    {"artist": artist, "track_data": track_data}
+                )
+            artist_scrobble_list = sorted(
+                artist_scrobble_list,
+                key=lambda d: d["track_data"]["playcount"],
+                reverse=True,
+            )
             if ADD_ARTIST_TAGS:
                 top_artist_d = artist_scrobble_list[0]["artist"]
                 top_tag = self.get_top_tag_for_artist(top_artist_d)
                 if top_tag:
                     artist_scrobble_list[0]["tag"] = top_tag
-            result.append({"day": day, "data": artist_scrobble_list, "scrobble_list": scrobble_list})
+            result.append(
+                {
+                    "day": day,
+                    "data": artist_scrobble_list,
+                    "scrobble_list": scrobble_list,
+                }
+            )
         sorted_result = sorted(result, key=lambda d: d["day"], reverse=True)
         return sorted_result
 
@@ -125,7 +155,9 @@ class LastfmClient:
         jobs = []
         queue = multiprocessing.Queue()
         for day in days:
-            job = multiprocessing.Process(target=self.get_data_for_day, args=(day, queue))
+            job = multiprocessing.Process(
+                target=self.get_data_for_day, args=(day, queue)
+            )
             jobs.append(job)
             job.start()
 
@@ -178,7 +210,11 @@ class LastfmClient:
     def get_lastfm_tracks_for_day(self, date: datetime) -> list:
         lastfm_response = self.lastfm_api_get_tracks(date, 1)
         lastfm_tracks = lastfm_response.get("recenttracks", {}).get("track")
-        num_pages = int(lastfm_response.get("recenttracks", {}).get("@attr", {}).get("totalPages", 0))
+        num_pages = int(
+            lastfm_response.get("recenttracks", {})
+            .get("@attr", {})
+            .get("totalPages", 0)
+        )
         if num_pages > 1:
             for page_num in range(2, num_pages + 1):
                 lastfm_response = self.lastfm_api_get_tracks(date, page_num)
@@ -192,28 +228,30 @@ class LastfmClient:
             if lastfm_tracks and len(lastfm_tracks) > 0:
                 #  Remove currently playing song from past results
                 if (
-                        lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
-                        and date.date() != datetime.today().date()
+                    lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
+                    and date.date() != datetime.today().date()
                 ):
                     del lastfm_tracks[0]
                 #  Remove duplicated playing song from current results
                 elif (
-                        lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
-                        and date.date() == datetime.today().date()
-                        and len(lastfm_tracks) > 1
-                        and lastfm_tracks[0].get("name") == lastfm_tracks[1].get("name")
+                    lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
+                    and date.date() == datetime.today().date()
+                    and len(lastfm_tracks) > 1
+                    and lastfm_tracks[0].get("name") == lastfm_tracks[1].get("name")
                 ):
                     del lastfm_tracks[0]
         return lastfm_tracks
 
     def get_top_tag_for_artist(self, artist: str, check_cache: bool = True) -> str:
-        logger.info(f"Getting top tag for {artist}...")
         top_tag = None
         firebase_client = FirebaseClient()
         if check_cache:
             top_tag = firebase_client.get_artist_tag(artist)
         if not top_tag:
-            api_response = self.last_fm_api_query(api_method="artist.gettoptags", artist=artist)
+            logger.info(f"Getting top tag for {artist}...")
+            api_response = self.last_fm_api_query(
+                api_method="artist.gettoptags", artist=artist
+            )
             tag_list = api_response.get("toptags", {}).get("tag", [])
             for tag in tag_list:
                 tag_name = tag.get("name")
@@ -231,21 +269,20 @@ class LastfmClient:
         :param page_num: Page number.
         :return: JSON response from API.
         """
-        date_start = (
-                date.replace(hour=0)
-                .replace(minute=0)
-                .replace(second=0)
-                .replace(microsecond=0) + timedelta(minutes=self.tz_offset)
-        )
+        date_start = date.replace(hour=0).replace(minute=0).replace(second=0).replace(
+            microsecond=0
+        ) + timedelta(minutes=self.tz_offset)
         date_start_epoch = int(date_start.timestamp())
-        date_end = date_start + timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
-        date_end_epoch = int(
-            date_end.timestamp()
+        date_end = date_start + timedelta(
+            hours=23, minutes=59, seconds=59, microseconds=999999
         )
+        date_end_epoch = int(date_end.timestamp())
         logger.debug(f"Last.fm query start date: {date_start}")
-        api_response = self.last_fm_api_query(api_method="user.getrecenttracks", username=self.username,
-                                              _from=date_start_epoch, to=date_end_epoch, page=page_num)
+        api_response = self.last_fm_api_query(
+            api_method="user.getrecenttracks",
+            username=self.username,
+            _from=date_start_epoch,
+            to=date_end_epoch,
+            page=page_num,
+        )
         return api_response
-
-
-

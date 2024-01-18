@@ -32,4 +32,3 @@ def retry(exception_to_check, tries=4, delay=0, backoff=0, _logger=None):
         return f_retry
 
     return deco_retry
-

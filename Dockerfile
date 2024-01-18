@@ -17,4 +17,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["gunicorn", "app:app", "--workers", "4", "--bind", "0.0.0.0:8080", "--timeout", "360"]
+CMD ["gunicorn", "app:app", "--workers", "1", "--threads", "4", "--bind", "0.0.0.0:8080", "--timeout", "360"]

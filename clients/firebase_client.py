@@ -105,7 +105,7 @@ class FirebaseClient(metaclass=Singleton):
             doc_ref = self.client.collection("artists").document(self.strip_string(artist))
             doc_ref.set({"tag": tag})
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on set_artist_tag")
 
     def get_artist_tag(self, artist: str):

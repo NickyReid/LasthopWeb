@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 app.secret_key = os.getenv("SESSION_SECRET_KEY")
 
+# Spotify only allows limited access until they approve the app.
+# To be added to the list, DM me your email address and last.fm username to be added as a user
+PLAYLIST_APPROVED_USERS = ["schiz0rr"]
+
 
 @app.route("/", methods=["POST", "GET"])
 def index():
@@ -32,6 +36,7 @@ def index():
     tz = None
     auth_url = None
     today = None
+    show_playlist_buttons = False
     try:
         if "username" in session:
             username = session["username"]
@@ -45,6 +50,8 @@ def index():
             tz_offset = session["tz_offset"]
         if "tz" in session:
             tz = session["tz"]
+        if "can_make_playlists" in session:
+            show_playlist_buttons = session["can_make_playlists"]
 
         if request.method == "GET":
             if request.args.get("code"):
@@ -97,6 +104,8 @@ def index():
                 )
 
         if username:
+            if username.lower() in PLAYLIST_APPROVED_USERS:
+                show_playlist_buttons = True
             if lastfm_user_data:
                 stats = controller.get_stats(lastfm_user_data, tz_offset)
                 if stats:
@@ -151,4 +160,5 @@ def index():
         auth_url=auth_url,
         stats=stats,
         today=today,
+        show_playlist_buttons=show_playlist_buttons
     )

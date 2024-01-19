@@ -50,8 +50,8 @@ def index():
             tz_offset = session["tz_offset"]
         if "tz" in session:
             tz = session["tz"]
-        if "can_make_playlists" in session:
-            show_playlist_buttons = session["can_make_playlists"]
+        if "show_playlist_buttons" in session:
+            show_playlist_buttons = session["show_playlist_buttons"]
 
         if request.method == "GET":
             if request.args.get("code"):

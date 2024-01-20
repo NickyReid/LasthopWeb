@@ -10971,3 +10971,16 @@ video.bg-video {
     width: auto;
   }
 }
+
+.playlist-btn-txt {
+    font-size:x-small;
+    text-align: right;
+    margin: auto;
+    width: 50%;
+    padding: 10px;
+}
+
+.playlist-btn {
+   width:70px;
+   padding:5px;
+}

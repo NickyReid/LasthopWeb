@@ -15,9 +15,11 @@
 		    }
         }
 
-        function loadingButton(btn_id, url=null, loading_msg="Please wait...") {
+        function loadingButton(btn_id, url=null, loading_msg=null) {
            btn = document.getElementById(btn_id);
-           btn.innerHTML = loading_msg;
+           if (loading_msg != null){
+            btn.innerHTML = loading_msg;
+           };
            btn.disabled = true;
            if (url){
             window.open(url,"_self")

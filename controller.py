@@ -54,6 +54,7 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
     # start_time = datetime.now()
     data = None
     username = lastfm_user_data.get("username", "").lower()
+    date_cached = None
     if username:
         if check_cache:
             cached_data = get_cached_stats(username)
@@ -73,10 +74,11 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
                 username, lastfm_user_data["join_date"], tz_offset
             )
             data = lfm_client.get_stats()
+            date_cached = datetime.utcnow()
     years_of_data = len(data) if data else 0
     logger.info(f"Stats summary: {username} had {years_of_data} years of data")
     # logger.info(f"(get_stats took {(datetime.now() - start_time).seconds} seconds)")
-    return data
+    return data, date_cached
 
 
 def get_cached_stats(username: str):

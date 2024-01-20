@@ -36,6 +36,7 @@ def index():
     tz = None
     auth_url = None
     today = None
+    date_cached = None
     show_playlist_buttons = False
     try:
         if "username" in session:
@@ -50,8 +51,6 @@ def index():
             tz_offset = session["tz_offset"]
         if "tz" in session:
             tz = session["tz"]
-        if "show_playlist_buttons" in session:
-            show_playlist_buttons = session["show_playlist_buttons"]
 
         if request.method == "GET":
             if request.args.get("code"):
@@ -107,7 +106,7 @@ def index():
             if username.lower() in PLAYLIST_APPROVED_USERS:
                 show_playlist_buttons = True
             if lastfm_user_data:
-                stats = controller.get_stats(lastfm_user_data, tz_offset)
+                stats, date_cached = controller.get_stats(lastfm_user_data, tz_offset)
                 if stats:
                     message = (
                         f"{username} has been on Last.fm since "
@@ -160,5 +159,6 @@ def index():
         auth_url=auth_url,
         stats=stats,
         today=today,
-        show_playlist_buttons=show_playlist_buttons
+        show_playlist_buttons=show_playlist_buttons,
+        date_cached=date_cached
     )

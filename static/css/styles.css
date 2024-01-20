@@ -10978,6 +10978,7 @@ video.bg-video {
     margin: auto;
     width: 50%;
     padding: 10px;
+    padding-right: 0px;
 }
 
 .playlist-btn {

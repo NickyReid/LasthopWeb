@@ -35,7 +35,6 @@ def index():
     tz_offset = None
     tz = None
     auth_url = None
-    today = None
     date_cached = None
     show_playlist_buttons = False
     try:
@@ -107,6 +106,9 @@ def index():
                 show_playlist_buttons = True
             if lastfm_user_data:
                 stats, date_cached = controller.get_stats(lastfm_user_data, tz_offset)
+                date_cached = date_cached.replace(tzinfo=pytz.UTC) - timedelta(
+                    minutes=tz_offset
+                )
                 if stats:
                     message = (
                         f"{username} has been on Last.fm since "
@@ -114,9 +116,7 @@ def index():
                     )
                 else:
                     message = f"{username} has no listening data for today"
-                today = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(
-                    minutes=tz_offset
-                )
+
                 if not auth_url and not playlist_url:
                     sp_oauth = SpotifyClient.get_auth_manager(session)
                     auth_url = sp_oauth.get_authorize_url()
@@ -158,7 +158,6 @@ def index():
         message=message,
         auth_url=auth_url,
         stats=stats,
-        today=today,
         show_playlist_buttons=show_playlist_buttons,
-        date_cached=date_cached
+        date_cached=date_cached,
     )

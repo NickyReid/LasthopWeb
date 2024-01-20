@@ -17,6 +17,7 @@ def stats_profile(func):
         print("Function", func.__name__, "time:", time_taken, "ms")
         print()
         return result
+
     return timed
 
 

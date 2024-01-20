@@ -6,8 +6,7 @@
         {% else %}
         {{ lastfm_user_data.username }}'s
         {% endif %}
-        listening history for {{ today.strftime('%-d %B') }}
-        {{  date_cached }}
+        listening history for {{ date_cached.strftime('%-d %B') }}
     </h4>
 
     {% if show_playlist_buttons %}

@@ -38,3 +38,21 @@
              return false;
            };
          };
+
+var showInfoText = false;
+
+ function toggleInfoDisplay(){
+    showInfoText = !showInfoText;
+
+    var whatIs = document.getElementById("what-is-lasthop");
+    var infoText = document.getElementById("info-text");
+
+    if (showInfoText == true){
+        infoText.style.display = "block";
+        whatIs.style.display = "none";
+    } else {
+        infoText.style.display = "none";
+        whatIs.style.display = "block";
+    }
+
+ };

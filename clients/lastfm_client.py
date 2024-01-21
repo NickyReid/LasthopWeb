@@ -277,7 +277,7 @@ class LastfmClient:
             hours=23, minutes=59, seconds=59, microseconds=999999
         )
         date_end_epoch = int(date_end.timestamp())
-        logger.debug(f"Last.fm query start date: {date_start}")
+        logger.info(f"Last.fm query start date: {date_start}")
         api_response = self.last_fm_api_query(
             api_method="user.getrecenttracks",
             username=self.username,

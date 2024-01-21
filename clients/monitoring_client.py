@@ -11,7 +11,7 @@ def stats_profile(func):
         ts = time.time()
         result = func(*args, **kwargs)
         te = time.time()
-        time_taken = int(round((te - ts) * 100, 1))
+        time_taken = int(round((te - ts) * 1000, 1))
         if time_taken:
             GoogleMonitoringClient().time_series_thread(func.__name__, time_taken)
         print("Function", func.__name__, "time:", time_taken, "ms")

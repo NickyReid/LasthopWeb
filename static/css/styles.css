@@ -10985,3 +10985,13 @@ video.bg-video {
    width:70px;
    padding:5px;
 }
+
+.info-box {
+   text-align:
+   left;position:
+   fixed;top: 0;left:0;
+}
+
+.info-box a {
+   color:#6fe6e6;
+}

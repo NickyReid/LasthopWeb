@@ -17,7 +17,6 @@ load_dotenv()
 LAST_FM_API_KEY = os.getenv("LAST_FM_API_KEY")
 LAST_FM_BASE_URL = "http://ws.audioscrobbler.com/2.0"
 HEADERS = {"User-Agent": "LasthopWeb/1.0"}
-STATS_START_DATE = datetime.utcnow()
 ADD_ARTIST_TAGS = True
 INCLUDE_THIS_YEAR = False
 
@@ -30,7 +29,7 @@ class LastfmClient:
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
         self.tz_offset = tz_offset or 0
-        today = STATS_START_DATE.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
+        today = datetime.utcnow() - timedelta(minutes=tz_offset)
         if INCLUDE_THIS_YEAR:
             self.stats_start_date = today
         else:

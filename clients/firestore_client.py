@@ -1,5 +1,8 @@
 import logging
-from firebase_admin import firestore
+import os
+
+import google
+from google.cloud import firestore_v1 as firestore
 from clients.monitoring_client import GoogleMonitoringClient
 
 logger = logging.getLogger(__name__)
@@ -14,9 +17,21 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class FirebaseClient(metaclass=Singleton):
+class FirestoreClient(metaclass=Singleton):
     def __init__(self):
-        self.client = firestore.client()
+        creds, project, database_name = self._get_credentials_and_project()
+        self.client = firestore.Client(
+            project=project, credentials=creds, database=database_name
+        )
+
+    @staticmethod
+    def _get_credentials_and_project():
+        if "prod" not in os.getenv("ENVIRONMENT", "").lower():
+            database_name = "development"
+        else:
+            database_name = "(default)"
+        creds, project = google.auth.default()
+        return creds, project, database_name
 
     def get_document(self, collection_name, document_id):
         try:

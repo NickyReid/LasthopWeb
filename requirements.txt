@@ -1,7 +1,5 @@
-firebase-admin==6.3.0
 Flask==3.0.0
 Flask-Session==0.5.0
-#waitress==2.1.2
 python-dotenv==1.0.0
 spotipy==2.23.0
 python-dateutil==2.8.2
@@ -9,3 +7,4 @@ pytz==2023.3.post1
 requests==2.31.0
 gunicorn==21.2.0
 google-cloud-monitoring==2.18.0
+google-cloud-firestore

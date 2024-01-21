@@ -1,21 +1,16 @@
 import logging
-import firebase_admin
 
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-from firebase_admin import credentials
 from clients.monitoring_client import GoogleMonitoringClient, stats_profile
-from clients.firebase_client import FirebaseClient
+from clients.firestore_client import FirestoreClient
 from clients.spotify_client import SpotifyClient
 from clients.lastfm_client import LastfmClient
 
 logger = logging.getLogger(__name__)
 load_dotenv()
 
-cred = credentials.Certificate("service-acc.json")
-firebase_admin.initialize_app(cred)
-
-firebase_client = FirebaseClient()
+firestore_client = FirestoreClient()
 monitoring_client = GoogleMonitoringClient()
 
 
@@ -32,11 +27,11 @@ def get_lastfm_user_info(username: str):
 
 
 def get_or_create_user(username: str):
-    user = firebase_client.get_user(username)
+    user = firestore_client.get_user(username)
     if not user or not user.get("user_info"):
         lastfm_user_info = LastfmClient.get_lastfm_user_data(username)
         if lastfm_user_info and lastfm_user_info.get("username"):
-            user = firebase_client.create_user(
+            user = firestore_client.create_user(
                 lastfm_user_info["username"], lastfm_user_info
             )
         else:
@@ -46,7 +41,7 @@ def get_or_create_user(username: str):
 
 def clear_stats(username: str):
     if username:
-        firebase_client.clear_user_data(username)
+        firestore_client.clear_user_data(username)
 
 
 @stats_profile
@@ -82,7 +77,7 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
 
 
 def get_cached_stats(username: str):
-    return firebase_client.get_user_data(username)
+    return firestore_client.get_user_data(username)
 
 
 @stats_profile

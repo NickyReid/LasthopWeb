@@ -7,7 +7,7 @@ import logging
 from clients import RetryException, retry
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-from clients.firebase_client import FirebaseClient
+from clients.firestore_client import FirestoreClient
 from clients.monitoring_client import GoogleMonitoringClient
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class LastfmClient:
         data_for_all_days = self.get_data_for_all_days()
         summary = self.summarize_data(data_for_all_days)
         stats_date_created = datetime.utcnow()
-        FirebaseClient().set_user_data(self.username, summary, stats_date_created)
+        FirestoreClient().set_user_data(self.username, summary, stats_date_created)
         return summary
 
     @classmethod
@@ -243,9 +243,9 @@ class LastfmClient:
 
     def get_top_tag_for_artist(self, artist: str, check_cache: bool = True) -> str:
         top_tag = None
-        firebase_client = FirebaseClient()
+        firestore_client = FirestoreClient()
         if check_cache:
-            top_tag = firebase_client.get_artist_tag(artist)
+            top_tag = firestore_client.get_artist_tag(artist)
         if not top_tag:
             logger.info(f"Getting top tag for {artist}...")
             api_response = self.last_fm_api_query(
@@ -258,7 +258,7 @@ class LastfmClient:
                     top_tag = tag_name
                     break
             if top_tag:
-                firebase_client.set_artist_tag(artist, top_tag)
+                firestore_client.set_artist_tag(artist, top_tag)
         return top_tag.lower() if top_tag else None
 
     def lastfm_api_get_tracks(self, date: datetime, page_num: int) -> dict:

@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 import logging
@@ -34,25 +35,28 @@ class GoogleMonitoringClient(metaclass=Singleton):
     def __init__(self):
         self.client = monitoring_v3.MetricServiceClient()
         self.project_name = "projects/fiery-azimuth-410611"
+        self.send_metrics = "prod" in os.getenv("ENVIRONMENT", "").lower()
 
     def increment_thread(self, metric_type, value=1):
-        t = Thread(
-            target=self._increment,
-            name="increment",
-            args=(
-                metric_type,
-                value,
-            ),
-        )
-        t.start()
+        if self.send_metrics:
+            t = Thread(
+                target=self._increment,
+                name="increment",
+                args=(
+                    metric_type,
+                    value,
+                ),
+            )
+            t.start()
 
     def time_series_thread(self, metric_type, time_taken):
-        t = Thread(
-            target=self._time_series,
-            name="time_series",
-            args=(metric_type, time_taken),
-        )
-        t.start()
+        if self.send_metrics:
+            t = Thread(
+                target=self._time_series,
+                name="time_series",
+                args=(metric_type, time_taken),
+            )
+            t.start()
 
     def _time_series(self, metric_type, time_taken):
         try:

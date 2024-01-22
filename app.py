@@ -131,7 +131,7 @@ def index():
             f"SpotifyOauthError Exception occurred. username:{username} lastfm_user_data:{lastfm_user_data} "
             f"tz:{tz} tz_offset:{tz_offset}"
         )
-        message = "There was an error authorizing Spotify - Please try again"
+        # message = "There was an error authorizing Spotify - Please try again"
         GoogleMonitoringClient().increment_thread("spotify-oath-exception")
     except SpotifyForbiddenException:
         session["access_token"] = None
@@ -140,7 +140,7 @@ def index():
             f"SpotifyForbiddenException Exception occurred. username:{username} lastfm_user_data:{lastfm_user_data}"
             f" tz:{tz} tz_offset:{tz_offset}"
         )
-        message = "Please authorize Spotify to create a playlist"
+        # message = "Please authorize Spotify to create a playlist"
     except:
         session["auth_url"] = None
         logger.exception(

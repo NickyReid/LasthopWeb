@@ -148,5 +148,5 @@ class FirestoreClient(metaclass=Singleton):
         except:
             GoogleMonitoringClient().increment_thread("firestore-exceptiom")
             logger.exception(
-                f"Exception occurred in firestore client on get_artist_tag"
+                f"Exception occurred in firestore client on get_artist_tag for {artist}"
             )

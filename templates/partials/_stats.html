@@ -15,24 +15,24 @@
     <hr class="solid">
     {% endif %}
 
-    <div class="row" >
-        <label for="artist-view-checkbox">
-            <input type="checkbox" id="artist-view-checkbox" name="artist_view_checkbox" onclick="toggleStatsView()"
-                   checked> Top artist view
-        </label>
+    <div class="row">
+        <div id="view-info" style="font-size:small;text-align:center">
+            Your top artists for each year. Expand to see more details
+        </div>
     </div>
 
-    <div id="stats-artist-view" style="display:block;">
+<!--    <div class="row" style="">-->
+         <div id="view-type-switch" style="font-size:xx-small;color:#5bb9b9;padding-top:15px;" onclick="toggleStatsView()"><u>See All Scrobbles</u></div>
 
+    <div id="stats-artist-view" style="display:block;">
         {% include 'partials/_stats_top_artist_view.html' %}
     </div>
     <div id="stats-chrono-view" style="display:none;">
         {% include 'partials/_stats_chronological_view.html' %}
     </div>
+    <hr class="solid">
 
     <div class="container-fluid px-4 px-lg-0" style="padding-top: 50px;">
-        <hr class="solid">
         {% include 'partials/_username_form.html' %}
     </div>
-
 </div>

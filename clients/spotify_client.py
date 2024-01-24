@@ -1,6 +1,5 @@
 import re
 import os
-import math
 import spotipy
 import random
 import logging
@@ -14,8 +13,10 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 HOST = os.getenv("HOST")
-PLAYLIST_SIZE_VAR = 50
 AUTH_SCOPE = "playlist-modify-private"
+DEFAULT_PLAYLIST_LENGTH = 50
+DEFAULT_TRACKS_PER_YEAR = 5
+MAX_PLAYLIST_LENGTH = 100
 
 
 class SpotifyForbiddenException(Exception):
@@ -39,27 +40,40 @@ class SpotifyClient:
             cache_handler=spotipy.cache_handler.FlaskSessionCacheHandler(session),
         )
 
+    @classmethod
+    def get_max_tracks_per_year(cls, data):
+        most_artists_in_a_year = max([len(year['data']) for year in data])
+        max_length = min(MAX_PLAYLIST_LENGTH / len(data), most_artists_in_a_year)
+        return max_length
+
     def make_playlist(
         self,
-        data: dict = None,
+        data: list = None,
         lastfm_user_data: dict = None,
         tz_offset: int = None,
         available_market: str = None,
+        playlist_tracks_per_year: int = None,
+        playlist_order_recent_first: bool = True,
+        playlist_repeat_artists: bool = False,
     ):
+        logger.info(f"Playlist options: playlist_tracks_per_year:{playlist_tracks_per_year}; "
+                    f"playlist_order_recent_first:{playlist_order_recent_first} {type(playlist_order_recent_first)}; "
+                    f"playlist_repeat_artists:{playlist_repeat_artists}")
+        playlist_tracks_per_year = playlist_tracks_per_year or DEFAULT_TRACKS_PER_YEAR
         if not data:
             logger.info(f"No data for {lastfm_user_data['username']}")
             return None, None
         start_time = datetime.now()
         logger.info(f"Making playlist for {lastfm_user_data['username']}")
-        track_data = self.format_track_data(data)
+        track_data = self.format_track_data(data, playlist_order_recent_first)
         if not track_data:
             return None, None
         try:
             playlist_id, playlist_url = self.create_playlist(
                 lastfm_user_data, tz_offset
             )
-            track_count = self.search_for_tracks(
-                playlist_id, track_data, available_market
+            track_count = self.add_tracks_to_playlist(
+                playlist_id, track_data, available_market, playlist_tracks_per_year, playlist_repeat_artists
             )
             if playlist_url:
                 logger.info(
@@ -100,9 +114,11 @@ class SpotifyClient:
         return playlist_id, playlist_url
 
     @staticmethod
-    def format_track_data(data: dict):
+    def format_track_data(data: list, playlist_order_recent_first: bool = True):
         this_year = datetime.today().year
         result = {}
+        if not playlist_order_recent_first:
+            data.reverse()
         for year_data in data:
             day = year_data["day"]
             year = day.date().year
@@ -134,22 +150,23 @@ class SpotifyClient:
                     )
         return result
 
-    def search_for_tracks(
-        self, playlist_id: int, artist_tracks: dict, available_market: str = None
+    def add_tracks_to_playlist(
+        self, playlist_id: int, artist_tracks: dict, available_market: str = None, year_track_limit: int = None,
+            playlist_repeat_artists: bool = False
     ):
-        tracks_per_year = math.ceil(PLAYLIST_SIZE_VAR / len(artist_tracks))
         logger.info(
-            f"Years of data = {len(artist_tracks)} -> Tracks per year = {tracks_per_year}"
+            f"Years of data = {len(artist_tracks)} -> Tracks per year: {year_track_limit} "
         )
         added_artists = []
         track_count = 0
         for year, artist_track_data in artist_tracks.items():
             tracks_added_this_year = 0
+
             for artist_dict in artist_track_data:
-                if tracks_added_this_year >= tracks_per_year:
+                if tracks_added_this_year >= year_track_limit:
                     break
                 artist = artist_dict["artist"]
-                if artist in added_artists:
+                if artist in added_artists and not playlist_repeat_artists:
                     continue
                 tracks = artist_dict["tracks"]
                 random.shuffle(tracks)
@@ -171,7 +188,7 @@ class SpotifyClient:
                 else:
                     current_search = selected_track
                     for retry_track in tracks[1:]:
-                        logger.info(
+                        logger.debug(
                             f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'"
                         )
                         current_search = retry_track
@@ -190,8 +207,8 @@ class SpotifyClient:
                             added_artists.append(artist)
                             break
                 if not found_track_uri:
-                    logger.info(f"Couldn't find any tracks for {artist} :(")
-            logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}\n")
+                    logger.debug(f"Couldn't find any tracks for {artist} :(")
+            logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}\n")
             track_count += tracks_added_this_year
         return track_count
 
@@ -199,7 +216,7 @@ class SpotifyClient:
     def add_track_to_playlist(
         spotify_client, playlist_id, track_uri, track_name, artist
     ):
-        logger.info(f"Adding '{track_name}' by {artist}")
+        logger.debug(f"Adding '{track_name}' by {artist}")
         spotify_client.playlist_add_items(playlist_id, [track_uri])
 
     def spotify_search(self, artist, track_name, available_market: str = None):

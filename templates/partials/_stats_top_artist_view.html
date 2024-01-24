@@ -1,7 +1,7 @@
 <div>
     <div id="top-artists-header" class="row" style="padding-bottom:3%;">
-        <div style="width:20%;"><strong> Year </strong></div>
-        <div style="width:50%;" <strong> Top Artist </strong></div>
+        <div style="width:15%;"><strong> Year </strong></div>
+        <div style="width:55%;"><strong> Top Artist </strong></div>
         <div style="width:30%;"><strong> Genre </strong></div>
 
     </div>
@@ -10,8 +10,8 @@
     <details>
         <summary>
             <div id="top-artists-summary" class="row">
-                <div style="width:20%;font-size: small;"><strong>{{ year_data['day'].strftime('%Y') }}</strong></div>
-                <div style="width:50%;">{{ year_data['data'][0]['artist'] }}</div>
+                <div style="width:15%;font-size: small;"><strong>{{ year_data['day'].strftime('%Y') }}</strong></div>
+                <div style="width:55%;">{{ year_data['data'][0]['artist'] }}</div>
                 <div style="font-size: small;width:30%;">
                     {% if year_data['data'][0]['tag'] %}
                     {{ year_data['data'][0]['tag'] }}
@@ -24,8 +24,8 @@
         <details>
             <summary>
                 <div id="top-artists" class="row">
-                    <div style="width:20%;text-align: right;font-size: small;"> {{ artist_data['track_data']['playcount'] }} </div>
-                    <div style="width:55%;"> {{ artist_data['artist'] }}</div>
+                    <div style="width:15%;text-align: right;font-size: small;"> {{ artist_data['track_data']['playcount'] }} </div>
+                    <div style="width:60%;"> {{ artist_data['artist'] }}</div>
                     <div style="font-size: small;width:25%;"></div>
                 </div>
             </summary>
@@ -34,7 +34,7 @@
                 {% if track_data["date"] %}
                 <div id="top-artists-tracks" class="row">
                     <div style="width:20%;text-align: right;">   </div>
-                    <div style="width:80%;">[{{ track_data["date"].strftime('%H:%M') }}]  {{ track_data["track_name"] }} </div>
+                    <div style="width:80%;color: #7fbfbd;">[{{ track_data["date"].strftime('%H:%M') }}]  {{ track_data["track_name"] }} </div>
                 </div>
                 {% endif %}
                 {% endfor %}

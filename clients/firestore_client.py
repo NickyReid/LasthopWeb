@@ -47,7 +47,7 @@ class FirestoreClient(metaclass=Singleton):
 
     @staticmethod
     def strip_string(string):
-        return str(string).replace("/", "_").lower()
+        return str(string).strip().replace("/", "_").lower()
 
     def get_user(self, username):
         try:

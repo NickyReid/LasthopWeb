@@ -1,5 +1,8 @@
 <div class="masthead-content text-white" style="padding-left: 15px;">
-
+   {% if allow_playlists %}
+    {% include 'partials/_make_playlist.html' %}
+    <hr class="solid">
+    {% endif %}
     <h4 style="text-align: center;">
         {% if lastfm_user_data.real_name %}
         {{ lastfm_user_data.real_name }}'s
@@ -9,20 +12,17 @@
         listening history for {{ date_cached.strftime('%-d %B') }}
     </h4>
 
-    <hr class="solid">
-    {% if allow_playlists %}
-    {% include 'partials/_make_playlist.html' %}
-    <hr class="solid">
-    {% endif %}
-
     <div class="row">
         <div id="view-info" style="font-size:small;text-align:center">
             Your top artists for each year. Expand to see more details
         </div>
     </div>
 
-<!--    <div class="row" style="">-->
-         <div id="view-type-switch" style="font-size:xx-small;color:#5bb9b9;padding-top:15px;" onclick="toggleStatsView()"><u>See All Scrobbles</u></div>
+    <hr class="solid">
+
+
+
+    <div id="view-type-switch" style="font-size:xx-small;color:#5bb9b9;padding-top:15px;" onclick="toggleStatsView()"><u>See All Scrobbles</u></div>
 
     <div id="stats-artist-view" style="display:block;">
         {% include 'partials/_stats_top_artist_view.html' %}

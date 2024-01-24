@@ -29,7 +29,7 @@
             btn.innerHTML = loading_msg;
            };
            btn.disabled = true;
-           if (url){
+           if (url != null){
             window.open(url,"_self")
            };
          };
@@ -83,3 +83,13 @@ var showPlaylistOptions = false;
     }
 
  };
+
+ function closePlaylistInfoBox(){
+    var playlistInfoBox = document.getElementById("created-playlist-info");
+    var makePlaylistBox = document.getElementById("make-playlist-box");
+
+    playlistInfoBox.style.display = "none";
+    makePlaylistBox.style.display = "block";
+
+ };
+

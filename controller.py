@@ -1,5 +1,6 @@
 import logging
 
+import pytz
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from clients.monitoring_client import GoogleMonitoringClient, stats_profile
@@ -46,24 +47,26 @@ def clear_stats(username: str):
 
 @stats_profile
 def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
-    # start_time = datetime.now()
     data = None
     username = lastfm_user_data.get("username", "").lower()
     date_cached = None
+    logger.debug(f"username:{username} check_cache:{check_cache} lastfm_user_data:{lastfm_user_data}")
     if username:
         if check_cache:
             cached_data = get_cached_stats(username)
+            logger.debug(f"cached_data = {cached_data}")
             if cached_data:
                 date_cached = cached_data.get("date_cached")
-                if (
-                    date_cached
-                    and date_cached.date()
-                    == (datetime.utcnow() - timedelta(minutes=tz_offset)).date()
-                ):
-                    logger.info(
-                        f"Data cached for {username} at {date_cached.date()} -> Returning cached data"
-                    )
-                    data = cached_data.get("data")
+                if date_cached:
+                    date_cached = date_cached.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
+                    today = (datetime.utcnow() - timedelta(minutes=tz_offset)).date()
+                    logger.debug(f"date_cached: {date_cached}")
+                    logger.debug(f"today: {today}")
+                    if date_cached.date() == today:
+                        logger.info(
+                            f"Data cached for {username} at {date_cached.date()} -> Returning cached data"
+                        )
+                        data = cached_data.get("data")
         if not data:
             lfm_client = LastfmClient(
                 username, lastfm_user_data["join_date"], tz_offset
@@ -72,7 +75,6 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
             date_cached = datetime.utcnow()
     years_of_data = len(data) if data else 0
     logger.info(f"Stats summary: {username} had {years_of_data} years of data")
-    # logger.info(f"(get_stats took {(datetime.now() - start_time).seconds} seconds)")
     return data, date_cached
 
 
@@ -87,6 +89,9 @@ def make_playlist(
     data: dict = None,
     tz_offset: int = None,
     tz: str = None,
+    playlist_tracks_per_year: int = None,
+    playlist_order_recent_first: bool = True,
+    playlist_repeat_artists: bool = False,
 ):
     if not data:
         data = get_cached_stats(lastfm_user_data["username"]).get("data")
@@ -96,5 +101,6 @@ def make_playlist(
         if "johannesburg" in tz.lower():
             available_market = "ZA"
     return spotify_client.make_playlist(
-        data, lastfm_user_data, tz_offset, available_market
+        data, lastfm_user_data, tz_offset, available_market, playlist_tracks_per_year=playlist_tracks_per_year,
+        playlist_order_recent_first=playlist_order_recent_first, playlist_repeat_artists=playlist_repeat_artists
     )

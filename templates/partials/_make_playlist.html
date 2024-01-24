@@ -1,0 +1,65 @@
+<div id="make-playlist-btn"  style="text-align: center;margin: 10px;padding:0px" >
+    <button class="btn btn-primary" onclick="togglePlaylistOptions()">
+        Make a Playlist
+    </button>
+</div>
+
+<div id="playlist-options" style="text-align: left;display:none;">
+        <div class="row">
+            <div style="text-align: center;font-size: larger;">
+            Make a playlist on<img style="width:90px;margin:10px" src="static/assets/img/spotify-logo.png" alt="spotify-logo" border="0"/>
+        </div>
+        </div>
+    <form>
+        <div class="row" style="height: 20px;">
+            <div style="width:50%; padding-right:5px;">
+                <label style="font-size:small;float: right;" for="playlist-length-slider">Playlist length</label>
+            </div>
+            <div style="width:50%; padding-left:5px;">
+                <input class="form-range" style="width: 35%;float: left;" id="playlist-length-slider" name="playlist_length" type="range" min="1" max="100" value="50" oninput="this.nextElementSibling.value = ' ~ ' + this.value">
+                <output style="display:block;padding: 5px;font-size:x-small;"> ~ 59</output>
+            </div>
+        </div>
+
+        <div class="row">
+            <div style="width:50%; padding-right:5px;">
+                <label for="newest-first-checkbox" style="font-size:small;float: right;">Recent first</label>
+            </div>
+            <div style="width:50%; padding-left:5px;">
+                <label class="switch" style="float: left;">
+                    <input id="newest-first-checkbox" name="newest_first" type="checkbox" class="switch-input" checked>
+                    <span class="switch-label"></span>
+                    <span class="switch-handle"></span>
+                </label>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <div style="width:50%; padding-right:5px;">
+                <label for="one-per-artist-checkbox" style="font-size:small;float: right;">Repeat artists</label>
+            </div>
+            <div style="width:50%; padding-left:5px;">
+                <label class="switch" style="float: left;">
+                    <input id="one-per-artist-checkbox" name="one_per_artist" type="checkbox" class="switch-input">
+                    <span class="switch-label"></span>
+                    <span class="switch-handle"></span>
+                </label>
+            </div>
+        </div>
+
+
+         <div class="row" style="padding-top: 10px;">
+            <div style="width:50%; padding-right:5px;">
+                  <div style="font-size: small;color: #4fb1b1;float: right;background: none;border: none;padding: 4px 6px;padding-right: 0px;"  onclick="togglePlaylistOptions()">
+                    Close
+                </div>
+            </div>
+            <div style="width:50%; padding-left:5px;">
+                 <input type="submit" class="btn btn-primary" style="font-size: small;padding: 2px 6px;" value="Create">
+            </div>
+        </div>
+
+
+    </form>
+</div>

@@ -9,8 +9,10 @@
         listening history for {{ date_cached.strftime('%-d %B') }}
     </h4>
 
-    {% if show_playlist_buttons %}
-    {% include 'partials/_playlist_buttons.html' %}
+    <hr class="solid">
+    {% if allow_playlists %}
+    {% include 'partials/_make_playlist.html' %}
+    <hr class="solid">
     {% endif %}
 
     <div class="row" >
@@ -29,8 +31,8 @@
     </div>
 
     <div class="container-fluid px-4 px-lg-0" style="padding-top: 50px;">
+        <hr class="solid">
         {% include 'partials/_username_form.html' %}
-
     </div>
 
 </div>

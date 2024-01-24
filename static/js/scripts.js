@@ -56,3 +56,22 @@ var showInfoText = false;
     }
 
  };
+
+
+var showPlaylistOptions = false;
+
+ function togglePlaylistOptions(){
+    showPlaylistOptions = !showPlaylistOptions;
+
+    var btn = document.getElementById("make-playlist-btn");
+    var options = document.getElementById("playlist-options");
+
+    if (showPlaylistOptions == true){
+        options.style.display = "block";
+        btn.style.display = "none";
+    } else {
+        options.style.display = "none";
+        btn.style.display = "block";
+    }
+
+ };

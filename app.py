@@ -36,7 +36,7 @@ def index():
     tz = None
     auth_url = None
     date_cached = None
-    show_playlist_buttons = False
+    allow_playlists = False
     try:
         if "username" in session:
             username = session["username"]
@@ -103,7 +103,7 @@ def index():
 
         if username:
             if username.lower() in PLAYLIST_APPROVED_USERS:
-                show_playlist_buttons = True
+                allow_playlists = True
             if lastfm_user_data:
                 stats, date_cached = controller.get_stats(lastfm_user_data, tz_offset)
                 date_cached = date_cached.replace(tzinfo=pytz.UTC) - timedelta(
@@ -158,6 +158,6 @@ def index():
         message=message,
         auth_url=auth_url,
         stats=stats,
-        show_playlist_buttons=show_playlist_buttons,
+        allow_playlists=allow_playlists,
         date_cached=date_cached,
     )

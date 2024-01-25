@@ -70,6 +70,7 @@ class LastfmClient:
         summary = self.summarize_data(data_for_all_days)
         stats_date_created = datetime.utcnow()
         FirestoreClient().set_user_data(self.username, summary, stats_date_created)
+        FirestoreClient().increment_user_days_visited(self.username)
         return summary
 
     @classmethod
@@ -220,6 +221,7 @@ class LastfmClient:
                 lastfm_tracks.extend(
                     lastfm_response.get("recenttracks", {}).get("track")
                 )
+
         if lastfm_tracks:
             if isinstance(lastfm_tracks, dict):
                 lastfm_tracks = [lastfm_tracks]
@@ -239,7 +241,7 @@ class LastfmClient:
                     and lastfm_tracks[0].get("name") == lastfm_tracks[1].get("name")
                 ):
                     del lastfm_tracks[0]
-        return lastfm_tracks
+        return lastfm_tracks or []
 
     def get_top_tag_for_artist(self, artist: str, check_cache: bool = True) -> str:
         top_tag = None

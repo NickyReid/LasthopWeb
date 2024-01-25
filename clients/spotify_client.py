@@ -57,7 +57,7 @@ class SpotifyClient:
         playlist_repeat_artists: bool = False,
     ):
         logger.info(f"Playlist options: playlist_tracks_per_year:{playlist_tracks_per_year}; "
-                    f"playlist_order_recent_first:{playlist_order_recent_first} {type(playlist_order_recent_first)}; "
+                    f"playlist_order_recent_first:{playlist_order_recent_first}; "
                     f"playlist_repeat_artists:{playlist_repeat_artists}")
         playlist_tracks_per_year = playlist_tracks_per_year or DEFAULT_TRACKS_PER_YEAR
         if not data:
@@ -157,7 +157,7 @@ class SpotifyClient:
         logger.info(
             f"Years of data = {len(artist_tracks)} -> Tracks per year: {year_track_limit} "
         )
-        added_artists = []
+        added_artist_tracks = {}
         track_count = 0
         for year, artist_track_data in artist_tracks.items():
             tracks_added_this_year = 0
@@ -166,11 +166,14 @@ class SpotifyClient:
                 if tracks_added_this_year >= year_track_limit:
                     break
                 artist = artist_dict["artist"]
-                if artist in added_artists and not playlist_repeat_artists:
+                if not playlist_repeat_artists and added_artist_tracks.get(artist):
+                    logger.debug(f"Already added artist {artist}, skipping")
                     continue
+
                 tracks = artist_dict["tracks"]
                 random.shuffle(tracks)
                 tracks = list(set(tracks)) if len(tracks) > 1 else tracks
+                tracks = [i for i in tracks if i not in added_artist_tracks.get(artist, [])]
                 selected_track = tracks[0]
                 found_track_uri = self.spotify_search(
                     artist, selected_track, available_market
@@ -184,7 +187,11 @@ class SpotifyClient:
                         artist,
                     )
                     tracks_added_this_year += 1
-                    added_artists.append(artist)
+                    if added_artist_tracks.get(artist):
+                        added_artist_tracks[artist].append(selected_track)
+                    else:
+                        added_artist_tracks[artist] = [selected_track]
+
                 else:
                     current_search = selected_track
                     for retry_track in tracks[1:]:
@@ -204,12 +211,16 @@ class SpotifyClient:
                                 artist,
                             )
                             tracks_added_this_year += 1
-                            added_artists.append(artist)
+                            if added_artist_tracks.get(artist):
+                                added_artist_tracks[artist].append(retry_track)
+                            else:
+                                added_artist_tracks[artist] = [retry_track]
                             break
                 if not found_track_uri:
                     logger.debug(f"Couldn't find any tracks for {artist} :(")
-            logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}\n")
+            logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}")
             track_count += tracks_added_this_year
+
         return track_count
 
     @staticmethod

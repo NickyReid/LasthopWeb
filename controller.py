@@ -73,6 +73,7 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
             )
             data = lfm_client.get_stats()
             date_cached = datetime.utcnow()
+
     years_of_data = len(data) if data else 0
     logger.info(f"Stats summary: {username} had {years_of_data} years of data")
     return data, date_cached

@@ -42,7 +42,7 @@ class FirestoreClient(metaclass=Singleton):
             else:
                 return None
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on get_document")
 
     @staticmethod
@@ -55,7 +55,7 @@ class FirestoreClient(metaclass=Singleton):
                 collection_name="users", document_id=self.strip_string(username)
             )
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on get_user")
 
     def create_user(self, username, user_info):
@@ -63,11 +63,11 @@ class FirestoreClient(metaclass=Singleton):
             doc_ref = self.client.collection("users").document(
                 self.strip_string(username)
             )
-            doc_ref.set({"username": username, "user_info": user_info})
+            doc_ref.set({"username": username, "user_info": user_info, "days_visited": 0})
             self.get_user_count()
             return self.get_user(username)
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on create_user")
 
     def get_user_data(self, username):
@@ -78,7 +78,7 @@ class FirestoreClient(metaclass=Singleton):
             doc = doc_ref.get()
             return doc.to_dict()
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on get_user_data")
 
     def get_user_count(self):
@@ -92,7 +92,7 @@ class FirestoreClient(metaclass=Singleton):
                     GoogleMonitoringClient().increment_thread("user-count", user_count)
             return user_count
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(
                 f"Exception occurred in firestore client on get_user_count"
             )
@@ -105,8 +105,24 @@ class FirestoreClient(metaclass=Singleton):
             )
             doc_ref.set({"data": data, "date_cached": date_cached}, merge=True)
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on set_user_data")
+
+    def increment_user_days_visited(self, username):
+        try:
+            doc_ref = self.client.collection("users").document(
+                self.strip_string(username)
+            )
+            doc = doc_ref.get()
+            doc = doc.to_dict()
+            days_visited = doc.get("days_visited", 1)
+            days_visited += 1
+            doc_ref.set({"days_visited": days_visited}, merge=True)
+            logger.info(f"{username} has visited {days_visited} times!")
+            logger.debug(f"Caching data for {self.strip_string(username)}...")
+        except:
+            GoogleMonitoringClient().increment_thread("firestore-exception")
+            logger.exception(f"Exception occurred in firestore client on increment_user_days_visited")
 
     def clear_user_data(self, username):
         try:
@@ -116,7 +132,7 @@ class FirestoreClient(metaclass=Singleton):
             )
             doc_ref.update({"data": None, "date_cached": None})
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(
                 f"Exception occurred in firestore client on clear_user_data"
             )
@@ -146,7 +162,7 @@ class FirestoreClient(metaclass=Singleton):
             if doc.to_dict():
                 return doc.to_dict().get("tag")
         except:
-            GoogleMonitoringClient().increment_thread("firestore-exceptiom")
+            GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(
                 f"Exception occurred in firestore client on get_artist_tag for {artist}"
             )

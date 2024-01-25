@@ -16,7 +16,7 @@ HOST = os.getenv("HOST")
 AUTH_SCOPE = "playlist-modify-private"
 DEFAULT_PLAYLIST_LENGTH = 50
 DEFAULT_TRACKS_PER_YEAR = 5
-MAX_PLAYLIST_LENGTH = 100
+MAX_PLAYLIST_LENGTH = 120
 
 
 class SpotifyForbiddenException(Exception):
@@ -174,6 +174,8 @@ class SpotifyClient:
                 random.shuffle(tracks)
                 tracks = list(set(tracks)) if len(tracks) > 1 else tracks
                 tracks = [i for i in tracks if i not in added_artist_tracks.get(artist, [])]
+                if not tracks:
+                    continue
                 selected_track = tracks[0]
                 found_track_uri = self.spotify_search(
                     artist, selected_track, available_market
@@ -195,7 +197,7 @@ class SpotifyClient:
                 else:
                     current_search = selected_track
                     for retry_track in tracks[1:]:
-                        logger.debug(
+                        logger.info(
                             f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'"
                         )
                         current_search = retry_track
@@ -217,8 +219,8 @@ class SpotifyClient:
                                 added_artist_tracks[artist] = [retry_track]
                             break
                 if not found_track_uri:
-                    logger.debug(f"Couldn't find any tracks for {artist} :(")
-            logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}")
+                    logger.info(f"Couldn't find any tracks for {artist} :(")
+            logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}\n")
             track_count += tracks_added_this_year
 
         return track_count
@@ -227,12 +229,15 @@ class SpotifyClient:
     def add_track_to_playlist(
         spotify_client, playlist_id, track_uri, track_name, artist
     ):
-        logger.debug(f"Adding '{track_name}' by {artist}")
+        logger.info(f"Adding '{track_name}' by {artist}")
         spotify_client.playlist_add_items(playlist_id, [track_uri])
 
     def spotify_search(self, artist, track_name, available_market: str = None):
         track_name = track_name[:75] if len(track_name) > 75 else track_name
-        search_params = {"q": "track:" + f"{track_name} + {artist}", "type": "track"}
+        track_name_search = track_name.replace("(", "").replace(")", "").lower().split("feat.")[0]
+        artist_search = artist.replace("&", "").replace("(", "").replace(")", "").lower().split("feat.")[0]
+        logger.debug(f"Searching for {track_name_search} - {artist_search}")
+        search_params = {"q": "track:" + f"{track_name_search} + {artist_search}", "type": "track"}
         if available_market:
             search_params.update({"market": available_market.upper()})
         search_result = self.spotify_client.search(**search_params)
@@ -244,9 +249,8 @@ class SpotifyClient:
                     search_result = search_result["items"]
                     found_item = None
                     for item in search_result:
-                        album = item.get("album")
                         found_track_name = item["name"]
-                        search_artists = album.get("artists")
+                        search_artists = item.get("artists")
                         for search_artist in search_artists:
                             search_artist_name = search_artist.get("name")
                             # TODO available markets config
@@ -270,7 +274,9 @@ class SpotifyClient:
             elif ("(" in track_name and ")" in track_name) or (
                 "[" in track_name and "]" in track_name
             ):
+
                 track_name_without_brackets = re.sub("[\(\[].*?[\)\]]", "", track_name)
+                logger.debug(f"Searching for {track_name} without brackets")
                 return self.spotify_search(
                     artist, track_name_without_brackets, available_market
                 )

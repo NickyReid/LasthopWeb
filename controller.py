@@ -54,7 +54,6 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
     if username:
         if check_cache:
             cached_data = get_cached_stats(username)
-            logger.debug(f"cached_data = {cached_data}")
             if cached_data:
                 date_cached = cached_data.get("date_cached")
                 if date_cached:

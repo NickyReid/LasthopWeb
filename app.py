@@ -176,7 +176,7 @@ def index():
         message = "Something went wrong :("
         GoogleMonitoringClient().increment_thread("unhandled-exception")
 
-    logger.info(f"Response message: {message} Referer:{request.referrer}")
+    logger.info(f"Response message: {message} UA: { request.headers.get('User-Agent')} Referer:{request.referrer}")
 
     return render_template(
         "index.html",

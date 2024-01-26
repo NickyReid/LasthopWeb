@@ -16,7 +16,7 @@ HOST = os.getenv("HOST")
 AUTH_SCOPE = "playlist-modify-private"
 DEFAULT_PLAYLIST_LENGTH = 50
 DEFAULT_TRACKS_PER_YEAR = 5
-MAX_PLAYLIST_LENGTH = 120
+MAX_PLAYLIST_LENGTH = os.getenv("MAX_PLAYLIST_LENGTH") or 120
 
 
 class SpotifyForbiddenException(Exception):

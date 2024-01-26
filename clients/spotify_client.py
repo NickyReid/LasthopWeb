@@ -171,9 +171,9 @@ class SpotifyClient:
                     continue
 
                 tracks = artist_dict["tracks"]
-                random.shuffle(tracks)
                 tracks = list(set(tracks)) if len(tracks) > 1 else tracks
                 tracks = [i for i in tracks if i not in added_artist_tracks.get(artist, [])]
+                random.shuffle(tracks)
                 if not tracks:
                     continue
                 selected_track = tracks[0]

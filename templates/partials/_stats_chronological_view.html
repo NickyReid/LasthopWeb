@@ -17,8 +17,8 @@
         </summary>
         {% for track_data in year_data['scrobble_list'] %}
         <div id="tracks-detail" class="row" style="color: #7fbfbd;">
-            <div style="width:15%;font-size:small;text-align: right;    padding: 0;"> [{{ track_data["date"].strftime('%H:%M') }}] </div>
-            <div style="width:85%;font-size:small;">{{ track_data["artist"] }} -  {{ track_data["track_name"] }}</div>
+            <div style="width:15%;font-size:small;text-align: right;padding: 0;"> [{{ track_data["date"].strftime('%H:%M') }}] </div>
+            <div style="width:85%;font-size:small;padding-left: 20px;">{{ track_data["artist"] }} -  {{ track_data["track_name"] }}</div>
         </div>
         {% endfor %}
 

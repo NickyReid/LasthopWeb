@@ -57,9 +57,10 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
             if cached_data:
                 date_cached = cached_data.get("date_cached")
                 if date_cached:
+                    logger.debug(f"date_cached: {date_cached}")
                     date_cached = date_cached.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
                     today = (datetime.utcnow() - timedelta(minutes=tz_offset)).date()
-                    logger.debug(f"date_cached: {date_cached}")
+                    logger.debug(f"date_cached adjustd: {date_cached}")
                     logger.debug(f"today: {today}")
                     if date_cached.date() == today:
                         logger.info(

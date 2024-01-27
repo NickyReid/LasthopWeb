@@ -33,7 +33,6 @@
                     <label style="font-size:small;float: right;" for="playlist-length-slider">Songs for each year</label>
                 </div>
                 <div style="width:50%; padding-left:5px;">
-<!--                    <input class="form-range" style="width: 35%;float: left;" id="playlist-length-slider" name="playlist_opt_length" type="range" min="{{ min_playlist_length }}" max="{{ max_playlist_length }}" value="{{ default_playlist_length }}">-->
                     <input class="form-range" style="width: 35%;float: left;" id="playlist-length-slider" name="playlist_opt_tracks_per_year" type="range" min="{{ min_tracks_per_year }}" max="{{ max_tracks_per_year }}" value="{{ default_tracks_per_year }}" oninput="this.nextElementSibling.value = ' ~ ' + this.value">
                     <output style="display:block;padding: 5px;font-size:x-small;"> ~ {{ default_tracks_per_year }} </output>
                 </div>

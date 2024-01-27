@@ -65,7 +65,7 @@ class LastfmClient:
             GoogleMonitoringClient().increment_thread("lastfm-exception")
             logger.exception(f"Unhandled exception for Last.fm {api_method}")
 
-    def get_stats(self):
+    def get_stats(self) -> list:
         data_for_all_days = self.get_data_for_all_days()
         summary = self.summarize_data(data_for_all_days)
         stats_date_created = datetime.utcnow()
@@ -74,7 +74,7 @@ class LastfmClient:
         return summary
 
     @classmethod
-    def get_lastfm_user_data(cls, username: str):
+    def get_lastfm_user_data(cls, username: str) -> dict:
         """
         Get the User's Last.fm profile information
         """
@@ -93,7 +93,10 @@ class LastfmClient:
             "total_tracks": int(api_response["user"].get("playcount")),
         }
 
-    def summarize_data(self, data: list):
+    def summarize_data(self, data: list) -> list:
+        """
+        Summarize the user's last.fm stats
+        """
         logger.info(f"Summarizing data for {self.username}...")
         result = []
         for line in data:
@@ -149,7 +152,10 @@ class LastfmClient:
         sorted_result = sorted(result, key=lambda d: d["day"], reverse=True)
         return sorted_result
 
-    def get_data_for_all_days(self):
+    def get_data_for_all_days(self) -> list:
+        """
+        Query last.fm for the user's scrobbles for each year
+        """
         logger.info(f"Getting data from Last.fm for {self.username}...")
         days = self.get_list_of_dates()
         jobs = []
@@ -174,7 +180,11 @@ class LastfmClient:
             job.join()
         return result
 
-    def get_list_of_dates(self):
+    def get_list_of_dates(self) -> [datetime]:
+        """
+        A list of dates for each year since the user's last.fm  join date
+        :return:
+        """
         date_to_process = self.stats_start_date
         days = []
         while date_to_process.date() >= self.join_date.date():
@@ -183,6 +193,9 @@ class LastfmClient:
         return days
 
     def get_data_for_day(self, day: datetime, queue: multiprocessing.Queue):
+        """
+        Query last.fm for the user's scrobbles on a given day
+        """
         raw_data = self.get_lastfm_tracks_for_day(day)
         data = []
         for line in raw_data:

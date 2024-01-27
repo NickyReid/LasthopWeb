@@ -119,7 +119,7 @@ class FirestoreClient(metaclass=Singleton):
             days_visited += 1
             doc_ref.set({"days_visited": days_visited}, merge=True)
             logger.info(f"{username} has visited {days_visited} times!")
-            logger.debug(f"Caching data for {self.strip_string(username)}...")
+            GoogleMonitoringClient().increment_thread("user-visits", days_visited)
         except:
             GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on increment_user_days_visited")

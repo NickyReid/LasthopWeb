@@ -41,21 +41,35 @@ class SpotifyClient:
         )
 
     @classmethod
-    def get_max_tracks_per_year(cls, data):
+    def get_max_tracks_per_year(cls, data: list) -> int:
+        """
+        The maximum number of tracks a user can add to a playlist per year
+        """
         most_artists_in_a_year = max([len(year['data']) for year in data])
         max_length = min(MAX_PLAYLIST_LENGTH / len(data), most_artists_in_a_year)
-        return max_length
+        return int(max_length)
 
     def make_playlist(
         self,
         data: list = None,
         lastfm_user_data: dict = None,
         tz_offset: int = None,
-        available_market: str = None,
+        user_country_code: str = None,
         playlist_tracks_per_year: int = None,
         playlist_order_recent_first: bool = True,
         playlist_repeat_artists: bool = False,
-    ):
+    ) -> (str, str):
+        """
+        Make a Spotify playlist, search for tracks and add them to the playlist
+        :param data: The user's last.fm stats
+        :param lastfm_user_data: The user's last.fm user info
+        :param tz_offset: The user's timezone offset
+        :param user_country_code: Country of the Spotify user to ensure tracks are available
+        :param playlist_tracks_per_year: Max number of tracks per year
+        :param playlist_order_recent_first: Order by most recent year or not
+        :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
+        :return: (playlist_id, playlist_url): Spotify playlist ID and URL
+        """
         logger.info(f"Playlist options: playlist_tracks_per_year:{playlist_tracks_per_year}; "
                     f"playlist_order_recent_first:{playlist_order_recent_first}; "
                     f"playlist_repeat_artists:{playlist_repeat_artists}")
@@ -73,7 +87,7 @@ class SpotifyClient:
                 lastfm_user_data, tz_offset
             )
             track_count = self.add_tracks_to_playlist(
-                playlist_id, track_data, available_market, playlist_tracks_per_year, playlist_repeat_artists
+                playlist_id, track_data, user_country_code, playlist_tracks_per_year, playlist_repeat_artists
             )
             if playlist_url:
                 logger.info(
@@ -90,7 +104,12 @@ class SpotifyClient:
             raise SpotifyForbiddenException
         return playlist_id, playlist_url
 
-    def create_playlist(self, lastfm_user_data: dict = None, tz_offset: int = None):
+    def create_playlist(self, lastfm_user_data: dict = None, tz_offset: int = None) -> (str, str):
+        """
+        :param lastfm_user_data: The user's last.fm user info
+        :param tz_offset: The user's timezone offset
+        :return: (playlist_id, playlist_url): Spotify playlist ID and URL
+        """
         user = self.spotify_client.current_user()
         user_id = user["id"]
         playlist_description = (
@@ -114,7 +133,13 @@ class SpotifyClient:
         return playlist_id, playlist_url
 
     @staticmethod
-    def format_track_data(data: list, playlist_order_recent_first: bool = True):
+    def format_track_data(data: list, playlist_order_recent_first: bool = True) -> dict:
+        """
+        Format the user's last.fm stats so a playlist can be created
+        :param data: The user's last.fm stats
+        :param playlist_order_recent_first: Order by most recent year or not
+        :return:
+        """
         this_year = datetime.today().year
         result = {}
         if not playlist_order_recent_first:
@@ -153,7 +178,16 @@ class SpotifyClient:
     def add_tracks_to_playlist(
         self, playlist_id: int, artist_tracks: dict, available_market: str = None, year_track_limit: int = None,
             playlist_repeat_artists: bool = False
-    ):
+    ) -> int:
+        """
+        Search for tracks and add them to the playlist
+        :param playlist_id: Spotify playlist ID
+        :param artist_tracks: Formatted last.fm stats
+        :param available_market: Country of the Spotify user to ensure tracks are available
+        :param year_track_limit: Max number of tracks to add per year
+        :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
+        :return: Number of tracks added to playlist
+        """
         logger.info(
             f"Years of data = {len(artist_tracks)} -> Tracks per year: {year_track_limit} "
         )
@@ -222,17 +256,20 @@ class SpotifyClient:
                     logger.info(f"Couldn't find any tracks for {artist} :(")
             logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}\n")
             track_count += tracks_added_this_year
-
         return track_count
 
     @staticmethod
     def add_track_to_playlist(
-        spotify_client, playlist_id, track_uri, track_name, artist
+        spotify_client: spotipy.Spotify, playlist_id: str, track_uri: str, track_name: str, artist: str
     ):
         logger.info(f"Adding '{track_name}' by {artist}")
         spotify_client.playlist_add_items(playlist_id, [track_uri])
 
-    def spotify_search(self, artist, track_name, available_market: str = None):
+    def spotify_search(self, artist: str, track_name: str, available_market: str = None) -> str:
+        """
+        Search Spotify for the track
+        :return: Track URI if track is found
+        """
         track_name = track_name[:75] if len(track_name) > 75 else track_name
         track_name_search = track_name.replace("(", "").replace(")", "").lower().split("feat.")[0]
         artist_search = artist.replace("&", "").replace("(", "").replace(")", "").lower().split("feat.")[0]

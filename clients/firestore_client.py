@@ -139,7 +139,7 @@ class FirestoreClient(metaclass=Singleton):
 
     def set_artist_tag(self, artist: str, tag: str):
         try:
-            logger.debug(
+            logger.info(
                 f"Caching tag '{self.strip_string(tag)}' for {self.strip_string(artist)}..."
             )
             doc_ref = self.client.collection("artists").document(

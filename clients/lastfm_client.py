@@ -33,7 +33,10 @@ class LastfmClient:
         if INCLUDE_THIS_YEAR:
             self.stats_start_date = today
         else:
-            self.stats_start_date = today.replace(year=today.year - 1)
+            if today.month == 2 and today.day == 29:  # Leap year
+                self.stats_start_date = today.replace(year=today.year - 4)
+            else:
+                self.stats_start_date = today.replace(year=today.year - 1)
         logger.debug(f"Stats start date for {lastfm_username}: {self.stats_start_date}")
 
     @classmethod
@@ -189,7 +192,10 @@ class LastfmClient:
         days = []
         while date_to_process.date() >= self.join_date.date():
             days.append(date_to_process)
-            date_to_process = date_to_process.replace(year=date_to_process.year - 1)
+            if date_to_process.month == 2 and date_to_process.day == 29:  # Leap year
+                date_to_process = date_to_process.replace(year=date_to_process.year - 4)
+            else:
+                date_to_process = date_to_process.replace(year=date_to_process.year - 1)
         return days
 
     def get_data_for_day(self, day: datetime, queue: multiprocessing.Queue):

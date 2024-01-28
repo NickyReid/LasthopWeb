@@ -1,8 +1,12 @@
 <div class="masthead-content text-white" style="padding-left: 15px;">
-   {% if allow_playlists %}
+    {% if allow_playlists %}
     {% include 'partials/_make_playlist.html' %}
-    <hr class="solid">
+
+    {% else %}
+    {% include 'partials/_sign_up_for_playlists.html' %}
+
     {% endif %}
+    <hr class="solid">
     <h4 style="text-align: center;">
         {% if lastfm_user_data.real_name %}
         {{ lastfm_user_data.real_name }}'s

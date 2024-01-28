@@ -122,7 +122,8 @@ def index():
                 return redirect(auth_url)
 
         if username:
-            if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
+            # if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
+            if username.lower() not in PLAYLIST_APPROVED_USERS:
                 allow_playlists = False
             if lastfm_user_data:
                 stats, date_cached = controller.get_stats(lastfm_user_data, tz_offset)

@@ -6,7 +6,7 @@ import pytz
 import controller
 from spotipy.oauth2 import SpotifyOauthError
 from clients.spotify_client import SpotifyClient, SpotifyForbiddenException, DEFAULT_TRACKS_PER_YEAR
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, session
 from clients.monitoring_client import GoogleMonitoringClient
@@ -107,7 +107,7 @@ def index():
                 username = request.form["username"]
                 session["username"] = username
                 if tz:
-                    logger.info(f"Timezone for {username}: {tz}")
+                    logger.info(f"Timezone for {username}: {tz} ({tz_offset})")
                 lastfm_user_data = controller.get_lastfm_user_info(username)
                 session["lastfm_user_data"] = lastfm_user_data
                 if lastfm_user_data and lastfm_user_data.get("username"):
@@ -122,14 +122,11 @@ def index():
                 return redirect(auth_url)
 
         if username:
-            # if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
-            if username.lower() not in PLAYLIST_APPROVED_USERS:
+            if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
+            # if username.lower() not in PLAYLIST_APPROVED_USERS:
                 allow_playlists = False
             if lastfm_user_data:
                 stats, date_cached = controller.get_stats(lastfm_user_data, tz_offset)
-                date_cached = date_cached.replace(tzinfo=pytz.UTC) - timedelta(
-                    minutes=tz_offset
-                )
                 if stats:
                     min_tracks_per_year = 1
                     max_tracks_per_year = SpotifyClient.get_max_tracks_per_year(stats)

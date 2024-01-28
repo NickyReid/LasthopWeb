@@ -37,7 +37,7 @@ class LastfmClient:
                 self.stats_start_date = today.replace(year=today.year - 4)
             else:
                 self.stats_start_date = today.replace(year=today.year - 1)
-        logger.debug(f"Stats start date for {lastfm_username}: {self.stats_start_date}")
+        logger.info(f"Stats start date for {lastfm_username}: {self.stats_start_date}")
 
     @classmethod
     @retry(RetryException, tries=3, delay=1, backoff=3, _logger=logger)
@@ -289,7 +289,7 @@ class LastfmClient:
         :param page_num: Page number.
         :return: JSON response from API.
         """
-        date_start = date.replace(hour=0).replace(minute=0).replace(second=0).replace(
+        date_start = date.replace(tzinfo=pytz.UTC).replace(hour=0).replace(minute=0).replace(second=0).replace(
             microsecond=0
         ) + timedelta(minutes=self.tz_offset)
         date_start_epoch = int(date_start.timestamp())

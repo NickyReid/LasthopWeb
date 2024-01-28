@@ -61,7 +61,7 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
                     logger.debug(f"date_cached: {date_cached}")
                     date_cached = date_cached.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
                     today = (datetime.utcnow() - timedelta(minutes=tz_offset)).date()
-                    logger.debug(f"date_cached adjustd: {date_cached}")
+                    logger.debug(f"date_cached adjusted: {date_cached}")
                     logger.debug(f"today: {today}")
                     if date_cached.date() == today:
                         logger.info(
@@ -73,7 +73,7 @@ def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
                 username, lastfm_user_data["join_date"], tz_offset
             )
             data = lfm_client.get_stats()
-            date_cached = datetime.utcnow()
+            date_cached = datetime.utcnow() - timedelta(minutes=tz_offset)
 
     years_of_data = len(data) if data else 0
     logger.info(f"Stats summary: {username} had {years_of_data} years of data")

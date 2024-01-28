@@ -128,7 +128,9 @@ class SpotifyClient:
             collaborative=False,
             description=playlist_description,
         )
+
         playlist_url = playlist.get("external_urls", {}).get("spotify")
+        print(playlist_url)
         playlist_id = playlist.get("id")
         return playlist_id, playlist_url
 
@@ -231,7 +233,7 @@ class SpotifyClient:
                     current_search = selected_track
                     for retry_track in tracks[1:]:
                         logger.info(
-                            f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'"
+                            f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'\n"
                         )
                         current_search = retry_track
                         found_track_uri = self.spotify_search(
@@ -261,7 +263,7 @@ class SpotifyClient:
     def add_track_to_playlist(
             spotify_client: spotipy.Spotify, playlist_id: str, track_uri: str, track_name: str, artist: str
     ):
-        logger.info(f"Adding '{track_name}' by {artist}")
+        logger.debug(f"Adding '{track_name}' by {artist}")
         spotify_client.playlist_add_items(playlist_id, [track_uri])
 
     def spotify_search(self, artist: str, track_name: str) -> str:
@@ -269,10 +271,27 @@ class SpotifyClient:
         Search Spotify for the track
         :return: Track URI if track is found
         """
-        track_name = track_name[:75] if len(track_name) > 75 else track_name
-        track_name_search = track_name.replace("(", "").replace(")", "").lower().split("feat.")[0]
-        artist_search = artist.replace("&", "").replace("(", "").replace(")", "").lower().split("feat.")[0]
-        logger.debug(f"Searching for {track_name_search} - {artist_search}")
+        def _strip_search_term(search_term):
+            if len(search_term) > 75:
+                search_term = search_term[:75]
+            search_term = search_term.lower().split("feat.")[0]
+            search_term = search_term.lower().split("ft.")[0]
+            search_term = search_term.lower().split("featuring")[0]
+            for char in ["(", ")", ".", "'"]:
+                search_term = search_term.replace(char, "")
+            search_term = search_term.replace(" & ", " ")
+            return search_term
+
+        def _match_artist(_search_artist, _result_artist):
+            _search_artist = _strip_search_term(_search_artist).replace(" and ", " ")
+            _result_artist = _strip_search_term(_result_artist).replace(" and ", " ")
+            if _search_artist == _result_artist or _search_artist == _result_artist.split(",")[0]:
+                return True
+            return False
+
+        track_name_search = _strip_search_term(track_name)
+        artist_search = _strip_search_term(artist)
+        logger.debug(f"Searching for {track_name_search} {artist_search}")
         search_params = {"q": "track:" + f"{track_name_search} + {artist_search}", "type": "track"}
         if self.available_market:
             logger.debug(f"Spotify available_market:{self.available_market}")
@@ -290,14 +309,10 @@ class SpotifyClient:
                         search_artists = item.get("artists")
                         for search_artist in search_artists:
                             search_artist_name = search_artist.get("name")
-                            if (
-                                    (
-                                            search_artist_name.lower() in artist.lower()
-                                            or artist.lower() in search_artist_name.lower()
-                                    )
-                                    and " - live" not in found_track_name.lower()
-                                    and "live at " not in found_track_name.lower()
-                            ):
+
+                            if _match_artist(search_artist_name, artist) \
+                                    and " - live" not in found_track_name.lower() \
+                                    and "live at " not in found_track_name.lower():
                                 found_item = item
                                 break
                         else:
@@ -307,15 +322,19 @@ class SpotifyClient:
             if found_item:
                 found_track_uri = found_item.get("uri")
                 return found_track_uri
-            elif ("(" in track_name and ")" in track_name) or (
-                    "[" in track_name and "]" in track_name
-            ):
-
-                track_name_without_brackets = re.sub("[\(\[].*?[\)\]]", "", track_name)
-                logger.debug(f"Searching for {track_name} without brackets")
-                return self.spotify_search(
-                    artist, track_name_without_brackets
-                )
+            # elif ("(" in track_name and ")" in track_name) or (
+            #         "[" in track_name and "]" in track_name
+            # ):
+            #
+            #     track_name_without_brackets = re.sub("[\(\[].*?[\)\]]", "", track_name)
+            #     logger.debug(f"Searching for {track_name} without brackets")
+            elif "[" in track_name and "]" in track_name:
+                track_name_without_brackets = re.sub("[\[].*?[\]]", "", track_name)
+                if track_name_without_brackets:
+                    logger.debug(f"Searching for {track_name} without brackets")
+                    return self.spotify_search(
+                        artist, track_name_without_brackets
+                    )
 
         except Exception:
             GoogleMonitoringClient().increment_thread("spotify-exception")

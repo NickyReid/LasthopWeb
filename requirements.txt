@@ -8,4 +8,4 @@ requests==2.31.0
 gunicorn==21.2.0
 google-cloud-monitoring==2.18.0
 google-cloud-firestore==2.14.0
-pycountry==23.12.11
+#pycountry==23.12.11

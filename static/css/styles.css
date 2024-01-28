@@ -11072,4 +11072,9 @@ video.bg-video {
   .switch-input:checked ~ & {
     left: 25px;
   }
-}}
+}
+
+.playlist-options-row {
+  height: 20px;
+  font-size: large;
+}

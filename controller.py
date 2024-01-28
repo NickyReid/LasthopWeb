@@ -7,6 +7,7 @@ from clients.monitoring_client import GoogleMonitoringClient, stats_profile
 from clients.firestore_client import FirestoreClient
 from clients.spotify_client import SpotifyClient
 from clients.lastfm_client import LastfmClient
+from countries import spotify_available_countries, timezone_countries
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -88,24 +89,23 @@ def make_playlist(
     spotify_client: SpotifyClient,
     lastfm_user_data: dict = None,
     data: dict = None,
-    tz_offset: int = None,
-    tz: str = None,
     playlist_tracks_per_year: int = None,
     playlist_order_recent_first: bool = True,
     playlist_repeat_artists: bool = False,
 ):
     if not data:
         data = get_cached_stats(lastfm_user_data["username"]).get("data")
-    available_market = None  # TODO timezones to spotify available_markets
-    if tz:
-        logger.info(f"Client timezone: {tz}")
-        if "johannesburg" in tz.lower():
-            available_market = "ZA"
     return spotify_client.make_playlist(
-        data, lastfm_user_data, tz_offset, available_market, playlist_tracks_per_year=playlist_tracks_per_year,
+        data, lastfm_user_data, playlist_tracks_per_year=playlist_tracks_per_year,
         playlist_order_recent_first=playlist_order_recent_first, playlist_repeat_artists=playlist_repeat_artists
     )
 
 
-def get_country_code_from_timezone():
-    pass
+def get_spotify_available_market_from_timezone(timezone: str) -> str:
+    if timezone:
+        timezone = timezone.replace("Calcutta", "Kolkata")
+    country_code = timezone_countries.get(timezone)
+    if spotify_available_countries.get(country_code):
+        return country_code
+    else:
+        logger.info(f"No Spotify available market for {timezone}")

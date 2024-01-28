@@ -106,7 +106,9 @@ var showPlaylistOptions = false;
     var morePlaylistOptions = document.getElementById("more-playlist-options");
 
     showMorePlaylistOptions = !showMorePlaylistOptions;
-    if (showPlaylistOptions == true){
+    console.log(showMorePlaylistOptions);
+    if (showMorePlaylistOptions == true){
+     console.log(showMorePlaylistOptions);
         morePlaylistOptions.style.display = "block";
     } else {
         morePlaylistOptions.style.display = "none";

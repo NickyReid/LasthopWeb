@@ -71,11 +71,12 @@ def index():
                 session["access_token"] = sp_oauth.get_access_token(
                     spotify_auth_code, as_dict=False
                 )
-                spotify_client = SpotifyClient(sp_oauth)
+
+                spotify_available_market = controller.get_spotify_available_market_from_timezone(tz)
+                spotify_client = SpotifyClient(sp_oauth, available_market=spotify_available_market, tz_offset=tz_offset)
                 playlist_id, playlist_url = controller.make_playlist(
                     spotify_client=spotify_client,
                     lastfm_user_data=lastfm_user_data,
-                    tz_offset=tz_offset,
                     playlist_tracks_per_year=playlist_opt_tracks_per_year,
                     playlist_order_recent_first=playlist_opt_order_recent_first,
                     playlist_repeat_artists=playlist_opt_repeat_artists,
@@ -97,7 +98,6 @@ def index():
                 if auth_url:
                     session["auth_url"] = auth_url
                 playlist_url = None
-
             if request.form.get("tz_offset"):
                 session["tz_offset"] = tz_offset = int(request.form["tz_offset"])
             if request.form.get("tz"):
@@ -115,13 +115,10 @@ def index():
 
             make_playlist = request.form.get("make_playlist")
             if make_playlist:
-                playlist_opt_tracks_per_year = request.form.get("playlist_opt_tracks_per_year")
-                playlist_opt_order_recent_first = bool(request.form.get("playlist_opt_order_recent_first"))
-                playlist_opt_repeat_artists = bool(request.form.get("playlist_opt_repeat_artists"))
                 session["make_playlist"] = make_playlist
-                session["playlist_opt_tracks_per_year"] = playlist_opt_tracks_per_year
-                session["playlist_opt_order_recent_first"] = playlist_opt_order_recent_first
-                session["playlist_opt_repeat_artists"] = playlist_opt_repeat_artists
+                session["playlist_opt_tracks_per_year"] = request.form.get("playlist_opt_tracks_per_year")
+                session["playlist_opt_order_recent_first"] =  bool(request.form.get("playlist_opt_order_recent_first"))
+                session["playlist_opt_repeat_artists"] =  bool(request.form.get("playlist_opt_repeat_artists"))
                 return redirect(auth_url)
 
         if username:
@@ -190,5 +187,5 @@ def index():
         date_cached=date_cached,
         min_tracks_per_year=min_tracks_per_year,
         max_tracks_per_year=max_tracks_per_year,
-        default_tracks_per_year=default_tracks_per_year
+        default_tracks_per_year=default_tracks_per_year,
     )

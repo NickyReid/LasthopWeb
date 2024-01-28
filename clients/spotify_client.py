@@ -24,13 +24,15 @@ class SpotifyForbiddenException(Exception):
 
 
 class SpotifyClient:
-    def __init__(self, auth_manager=None, session=None):
+    def __init__(self, auth_manager=None, session=None, available_market: str = None, tz_offset: int = None):
         if not auth_manager and not session:
             raise Exception("Auth manager or session required")
         if not auth_manager:
             auth_manager = self.get_auth_manager(session)
         self.auth_manager = auth_manager
         self.spotify_client = spotipy.Spotify(auth_manager=auth_manager)
+        self.available_market = available_market
+        self.tz_offset = tz_offset or 0
 
     @staticmethod
     def get_auth_manager(session):
@@ -50,29 +52,27 @@ class SpotifyClient:
         return int(max_length)
 
     def make_playlist(
-        self,
-        data: list = None,
-        lastfm_user_data: dict = None,
-        tz_offset: int = None,
-        user_country_code: str = None,
-        playlist_tracks_per_year: int = None,
-        playlist_order_recent_first: bool = True,
-        playlist_repeat_artists: bool = False,
+            self,
+            data: list = None,
+            lastfm_user_data: dict = None,
+            playlist_tracks_per_year: int = None,
+            playlist_order_recent_first: bool = True,
+            playlist_repeat_artists: bool = False
     ) -> (str, str):
         """
         Make a Spotify playlist, search for tracks and add them to the playlist
         :param data: The user's last.fm stats
         :param lastfm_user_data: The user's last.fm user info
-        :param tz_offset: The user's timezone offset
-        :param user_country_code: Country of the Spotify user to ensure tracks are available
         :param playlist_tracks_per_year: Max number of tracks per year
         :param playlist_order_recent_first: Order by most recent year or not
         :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
         :return: (playlist_id, playlist_url): Spotify playlist ID and URL
         """
-        logger.info(f"Playlist options: playlist_tracks_per_year:{playlist_tracks_per_year}; "
+        logger.info(f"Playlist options: user:{lastfm_user_data['username']}; "
+                    f"playlist_tracks_per_year:{playlist_tracks_per_year}; "
                     f"playlist_order_recent_first:{playlist_order_recent_first}; "
-                    f"playlist_repeat_artists:{playlist_repeat_artists}")
+                    f"playlist_repeat_artists:{playlist_repeat_artists}; "
+                    f"available_market:{self.available_market}; tz_offset:{self.tz_offset}")
         playlist_tracks_per_year = playlist_tracks_per_year or DEFAULT_TRACKS_PER_YEAR
         if not data:
             logger.info(f"No data for {lastfm_user_data['username']}")
@@ -84,10 +84,10 @@ class SpotifyClient:
             return None, None
         try:
             playlist_id, playlist_url = self.create_playlist(
-                lastfm_user_data, tz_offset
+                lastfm_user_data
             )
             track_count = self.add_tracks_to_playlist(
-                playlist_id, track_data, user_country_code, playlist_tracks_per_year, playlist_repeat_artists
+                playlist_id, track_data, playlist_tracks_per_year, playlist_repeat_artists
             )
             if playlist_url:
                 logger.info(
@@ -104,10 +104,9 @@ class SpotifyClient:
             raise SpotifyForbiddenException
         return playlist_id, playlist_url
 
-    def create_playlist(self, lastfm_user_data: dict = None, tz_offset: int = None) -> (str, str):
+    def create_playlist(self, lastfm_user_data: dict = None) -> (str, str):
         """
         :param lastfm_user_data: The user's last.fm user info
-        :param tz_offset: The user's timezone offset
         :return: (playlist_id, playlist_url): Spotify playlist ID and URL
         """
         user = self.spotify_client.current_user()
@@ -120,10 +119,11 @@ class SpotifyClient:
                 f" {lastfm_user_data['username']}'s listening history on this day since "
                 f"{lastfm_user_data['join_date'].year}"
             )
-        playlist_name = f"Lasthop {(datetime.utcnow() - timedelta(minutes=tz_offset)).strftime('%b %-d')}"
+
+        playlist_title = f"Lasthop {(datetime.utcnow() - timedelta(minutes=self.tz_offset)).strftime('%b %-d')}"
         playlist = self.spotify_client.user_playlist_create(
             user_id,
-            playlist_name,
+            playlist_title,
             public=False,
             collaborative=False,
             description=playlist_description,
@@ -176,14 +176,13 @@ class SpotifyClient:
         return result
 
     def add_tracks_to_playlist(
-        self, playlist_id: int, artist_tracks: dict, available_market: str = None, year_track_limit: int = None,
+            self, playlist_id: str, artist_tracks: dict, year_track_limit: int = None,
             playlist_repeat_artists: bool = False
     ) -> int:
         """
         Search for tracks and add them to the playlist
         :param playlist_id: Spotify playlist ID
         :param artist_tracks: Formatted last.fm stats
-        :param available_market: Country of the Spotify user to ensure tracks are available
         :param year_track_limit: Max number of tracks to add per year
         :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
         :return: Number of tracks added to playlist
@@ -212,7 +211,7 @@ class SpotifyClient:
                     continue
                 selected_track = tracks[0]
                 found_track_uri = self.spotify_search(
-                    artist, selected_track, available_market
+                    artist, selected_track
                 )
                 if found_track_uri:
                     self.add_track_to_playlist(
@@ -236,7 +235,7 @@ class SpotifyClient:
                         )
                         current_search = retry_track
                         found_track_uri = self.spotify_search(
-                            artist, retry_track, available_market
+                            artist, retry_track
                         )
                         if found_track_uri:
                             self.add_track_to_playlist(
@@ -260,12 +259,12 @@ class SpotifyClient:
 
     @staticmethod
     def add_track_to_playlist(
-        spotify_client: spotipy.Spotify, playlist_id: str, track_uri: str, track_name: str, artist: str
+            spotify_client: spotipy.Spotify, playlist_id: str, track_uri: str, track_name: str, artist: str
     ):
         logger.info(f"Adding '{track_name}' by {artist}")
         spotify_client.playlist_add_items(playlist_id, [track_uri])
 
-    def spotify_search(self, artist: str, track_name: str, available_market: str = None) -> str:
+    def spotify_search(self, artist: str, track_name: str) -> str:
         """
         Search Spotify for the track
         :return: Track URI if track is found
@@ -275,8 +274,9 @@ class SpotifyClient:
         artist_search = artist.replace("&", "").replace("(", "").replace(")", "").lower().split("feat.")[0]
         logger.debug(f"Searching for {track_name_search} - {artist_search}")
         search_params = {"q": "track:" + f"{track_name_search} + {artist_search}", "type": "track"}
-        if available_market:
-            search_params.update({"market": available_market.upper()})
+        if self.available_market:
+            logger.debug(f"Spotify available_market:{self.available_market}")
+            search_params.update({"market": self.available_market})
         search_result = self.spotify_client.search(**search_params)
         try:
             found_item = None
@@ -290,14 +290,13 @@ class SpotifyClient:
                         search_artists = item.get("artists")
                         for search_artist in search_artists:
                             search_artist_name = search_artist.get("name")
-                            # TODO available markets config
                             if (
-                                (
-                                    search_artist_name.lower() in artist.lower()
-                                    or artist.lower() in search_artist_name.lower()
-                                )
-                                and " - live" not in found_track_name.lower()
-                                and "live at " not in found_track_name.lower()
+                                    (
+                                            search_artist_name.lower() in artist.lower()
+                                            or artist.lower() in search_artist_name.lower()
+                                    )
+                                    and " - live" not in found_track_name.lower()
+                                    and "live at " not in found_track_name.lower()
                             ):
                                 found_item = item
                                 break
@@ -309,13 +308,13 @@ class SpotifyClient:
                 found_track_uri = found_item.get("uri")
                 return found_track_uri
             elif ("(" in track_name and ")" in track_name) or (
-                "[" in track_name and "]" in track_name
+                    "[" in track_name and "]" in track_name
             ):
 
                 track_name_without_brackets = re.sub("[\(\[].*?[\)\]]", "", track_name)
                 logger.debug(f"Searching for {track_name} without brackets")
                 return self.spotify_search(
-                    artist, track_name_without_brackets, available_market
+                    artist, track_name_without_brackets
                 )
 
         except Exception:

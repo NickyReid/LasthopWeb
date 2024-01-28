@@ -13,8 +13,12 @@
     </h4>
 
     <div class="row">
-        <div id="view-info" style="font-size:small;text-align:center">
-            Your top artists for each year. Expand to see more details
+        <div id="view-info-top-artists" style="font-size:small;text-align:center;display:block;">
+            Your top artists on {{ date_cached.strftime('%-d %B') }} for each year. Expand to see more.
+        </div>
+
+        <div id="view-info-all-scrobbles" style="font-size:small;text-align:center;display:none;">
+            All your scrobbles on {{ date_cached.strftime('%-d %B') }} for each year. Expand to see more.
         </div>
     </div>
 

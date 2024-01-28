@@ -105,3 +105,7 @@ def make_playlist(
         data, lastfm_user_data, tz_offset, available_market, playlist_tracks_per_year=playlist_tracks_per_year,
         playlist_order_recent_first=playlist_order_recent_first, playlist_repeat_artists=playlist_repeat_artists
     )
+
+
+def get_country_code_from_timezone():
+    pass

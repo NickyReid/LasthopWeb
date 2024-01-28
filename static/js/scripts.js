@@ -7,19 +7,26 @@
 		    var statsChronoView = document.getElementById("stats-chrono-view");
 
 		    var viewTypeSwitch = document.getElementById("view-type-switch");
-		    var viewInfo = document.getElementById("view-info");
 
+		    var viewInfoTopArtists = document.getElementById("view-info-top-artists");
+		    var viewInfoAllScrobbles = document.getElementById("view-info-all-scrobbles");
 
 		    if (artistView == true){
 		        statsArtistView.style.display = "block";
 		        statsChronoView.style.display = "none";
+
+		        viewInfoTopArtists.style.display = "block";
+		        viewInfoAllScrobbles.style.display = "none";
+
 		        viewTypeSwitch.innerHTML = "<u>See All Scrobbles</u>"
-		        viewInfo.innerHTML = "Your top artists for each year. Expand to see more details"
 		    } else {
 		        statsArtistView.style.display = "none";
 		        statsChronoView.style.display = "block";
+
+                viewInfoTopArtists.style.display = "none";
+		        viewInfoAllScrobbles.style.display = "block";
+
 		        viewTypeSwitch.innerHTML = "<u>See Top Artists</u>"
-		        viewInfo.innerHTML = "All your scrobbles for each year. Expand to see more details"
 		    }
         }
 

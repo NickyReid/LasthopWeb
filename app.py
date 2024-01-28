@@ -21,7 +21,7 @@ app.secret_key = os.getenv("SESSION_SECRET_KEY")
 
 # Spotify only allows limited access until they approve the app.
 # To be added to the list, DM me your email address and last.fm username to be added as a user
-PLAYLIST_APPROVED_USERS = ["schiz0rr"]
+PLAYLIST_APPROVED_USERS = ["schiz0rr", "f1ak3r"]
 
 
 @app.route("/", methods=["POST", "GET"])

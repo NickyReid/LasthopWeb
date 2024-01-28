@@ -100,3 +100,17 @@ var showPlaylistOptions = false;
 
  };
 
+ var showMorePlaylistOptions = false;
+
+ function toggleMorePlaylistOptions(){
+    var morePlaylistOptions = document.getElementById("more-playlist-options");
+
+    showMorePlaylistOptions = !showMorePlaylistOptions;
+    if (showPlaylistOptions == true){
+        morePlaylistOptions.style.display = "block";
+    } else {
+        morePlaylistOptions.style.display = "none";
+    }
+
+ };
+

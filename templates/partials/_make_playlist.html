@@ -1,9 +1,9 @@
 {% if playlist_url %}
 <div id="created-playlist-info">
-     <div class="row">
-         <div style="text-align: center;font-size: larger;">
-          <a class="btn btn-primary" href="{{ playlist_url }}" target="_blank"> Open Playlist </a>
-    </div>
+    <div class="row">
+        <div style="text-align: center;font-size: larger;">
+            <a class="btn btn-primary" href="{{ playlist_url }}" target="_blank"> Open Playlist </a>
+        </div>
         <div style="text-align: center;font-size:xx-small;color:#5bb9b9" onclick="closePlaylistInfoBox()">Close</div>
     </div>
 </div>
@@ -12,86 +12,97 @@
 {% if lastfm_user_data and stats and auth_url %}
 {% if playlist_url %}
 <div id="make-playlist-box" style="display:none;">
-{% else %}
-<div style="display:block;">
-{% endif %}
-    <div id="make-playlist-btn"  style="text-align: center;margin: 10px;padding:0px" >
-        <button class="btn btn-primary" onclick="togglePlaylistOptions()">
-            Make a Playlist
-        </button>
-    </div>
-
-    <div id="playlist-options" style="text-align: left;display:none;">
-        <div class="row">
-            <div style="text-align: center;font-size: larger;">
-                Make a playlist on<img style="width:90px;margin:10px" src="static/assets/img/spotify-logo.png" alt="spotify-logo" border="0"/>
-            </div>
+    {% else %}
+    <div style="display:block;">
+        {% endif %}
+        <div id="make-playlist-btn"  style="text-align: center;margin: 10px;padding:0px" >
+            <button class="btn btn-primary" onclick="togglePlaylistOptions()">
+                Make a Playlist
+            </button>
         </div>
-        <form id="make-playlist-form" method="post" onsubmit="return formLoadingButton('create-playlist-btn', 'make-playlist-form', 'create-playlist-btn')">
-            <div class="row" style="height: 20px;">
-                <div style="width:50%; padding-right:5px;">
-                    <label style="font-size:small;float: right;" for="playlist-length-slider">Songs for each year</label>
-                </div>
-                <div style="width:50%; padding-left:5px;">
-                    <input class="form-range" style="width: 35%;float: left;" id="playlist-length-slider" name="playlist_opt_tracks_per_year" type="range" min="{{ min_tracks_per_year }}" max="{{ max_tracks_per_year }}" value="{{ default_tracks_per_year }}" oninput="this.nextElementSibling.value = ' ~ ' + this.value">
-                    <output style="display:block;padding: 5px;font-size:x-small;"> ~ {{ default_tracks_per_year }} </output>
-                </div>
-            </div>
 
+        <div id="playlist-options" style="text-align: left;display:none;">
             <div class="row">
-                <div style="width:50%; padding-right:5px;">
-                    <label for="recent-first-checkbox" style="font-size:small;float: right;">Most recent first</label>
-                </div>
-                <div style="width:50%; padding-left:5px;">
-                    <label class="switch" style="float: left;">
-                        <input id="recent-first-checkbox" name="playlist_opt_order_recent_first" type="checkbox" class="switch-input" checked>
-                        <span class="switch-label"></span>
-                        <span class="switch-handle"></span>
-                    </label>
+                <div style="text-align: center;font-size: larger;">
+                    Make a playlist on<img style="width:90px;margin:10px" src="static/assets/img/spotify-logo.png" alt="spotify-logo" border="0"/>
                 </div>
             </div>
-
-            <div class="row">
-                <div style="width:50%; padding-right:5px;">
-                    <label for="one-per-artist-checkbox" style="font-size:small;float: right;">Allow repeat artists</label>
-                </div>
-                <div style="width:50%; padding-left:5px;">
-                    <label class="switch" style="float: left;">
-                        <input id="one-per-artist-checkbox" name="playlist_opt_repeat_artists" type="checkbox" class="switch-input">
-                        <span class="switch-label"></span>
-                        <span class="switch-handle"></span>
-                    </label>
-                </div>
-            </div>
-
-               <div class="row">
-                <div style="width:50%; padding-right:5px;">
-                    <label for="country-selection" style="font-size:small;float: right;"> Country </label>
-                </div>
-                <div style="width:50%; padding-left:5px;">
-                    <label class="switch" style="float: left;">
-                        <select id="country-selection" name="playlist_opt_country" >
-                            <option></option>
-                            <option></option>
-                            <option></option>
-                        </select>
-                    </label>
-                </div>
-            </div>
-
-            <div class="row" style="padding-top: 10px;">
-                <div style="width:50%; padding-right:5px;">
-                    <div style="font-size: small;color: #4fb1b1;float: right;background: none;border: none;padding: 4px 6px;padding-right: 0px;"  onclick="togglePlaylistOptions()">
-                        Close
+            <form id="make-playlist-form" method="post" onsubmit="return formLoadingButton('create-playlist-btn', 'make-playlist-form', 'create-playlist-btn')">
+                <div class="row" style="height: 20px;">
+                    <div style="width:50%; padding-right:5px;">
+                        <label style="font-size:small;float: right;" for="playlist-length-slider">Songs for each year</label>
+                    </div>
+                    <div style="width:50%; padding-left:5px;">
+                        <input class="form-range" style="width: 35%;float: left;" id="playlist-length-slider" name="playlist_opt_tracks_per_year" type="range" min="{{ min_tracks_per_year }}" max="{{ max_tracks_per_year }}" value="{{ default_tracks_per_year }}" oninput="this.nextElementSibling.value = ' ~ ' + this.value">
+                        <output style="display:block;padding: 5px;font-size:x-small;"> ~ {{ default_tracks_per_year }} </output>
                     </div>
                 </div>
-                <div style="width:50%; padding-left:5px;">
-                    <input type="hidden"  name="make_playlist" value="True">
-                    <input id="create-playlist-btn" type="submit" class="btn btn-primary" style="font-size: small;padding: 2px 6px;" value="Create">
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 
-{% endif %}
+                <div class="row">
+                    <div style="width:50%; padding-right:5px;">
+                        <label for="recent-first-checkbox" style="font-size:small;float: right;">Most recent first</label>
+                    </div>
+                    <div style="width:50%; padding-left:5px;">
+                        <label class="switch" style="float: left;">
+                            <input id="recent-first-checkbox" name="playlist_opt_order_recent_first" type="checkbox" class="switch-input" checked>
+                            <span class="switch-label"></span>
+                            <span class="switch-handle"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div style="width:50%; padding-right:5px;">
+                        <label for="one-per-artist-checkbox" style="font-size:small;float: right;">Allow repeat artists</label>
+                    </div>
+                    <div style="width:50%; padding-left:5px;">
+                        <label class="switch" style="float: left;">
+                            <input id="one-per-artist-checkbox" name="playlist_opt_repeat_artists" type="checkbox" class="switch-input">
+                            <span class="switch-label"></span>
+                            <span class="switch-handle"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="more-playlist-options" style="display:none;">
+                    <div class="row">
+                        <div style="width:50%; padding-right:5px;">
+                            <label for="country-selection" title="This is a mouseover text!" style="font-size:small;float: right;"> Country </label>
+                        </div>
+                        <div style="width:50%; padding-left:5px;">
+                            <label class="switch" style="float: left;">
+                                <select id="country-selection" name="playlist_opt_country" >
+                                    <option></option>
+                                    <option></option>
+                                    <option></option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                     <div style="width:50%; padding-right:5px;float:right;">
+                        <div style="font-size: small;color: #4fb1b1;float: right;background: none;border: none;padding: 4px 6px;padding-right: 0px;"  onclick="showMorePlaylistOptions()">
+                            More options
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" style="padding-top: 10px;">
+                    <div style="width:50%; padding-left:5px;">
+                        <input type="hidden"  name="make_playlist" value="True">
+                        <input id="create-playlist-btn" type="submit" class="btn btn-primary" style="font-size: small;padding: 5px 10px;" value="Create">
+                    </div>
+
+                    <div style="width:50%; padding-right:5px">
+                        <div style="font-size: small;color: #4fb1b1;float: right;background: none;border: none;padding: 4px 6px;padding-right: 0px;"  onclick="togglePlaylistOptions()">
+                            Close
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% endif %}

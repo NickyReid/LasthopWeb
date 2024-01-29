@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 from clients.monitoring_client import GoogleMonitoringClient
+from clients.firestore_client import FirestoreClient
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -34,11 +35,12 @@ class SpotifyClient:
         self.spotify_client = spotipy.Spotify(auth_manager=auth_manager)
         self.available_market = available_market
         self.tz_offset = tz_offset or 0
+        self.firestore_client = FirestoreClient()
 
     @staticmethod
     def get_auth_manager(session):
         return spotipy.oauth2.SpotifyOAuth(
-            redirect_uri=f"{os.getenv('HOST')}/",
+            redirect_uri=f"{HOST}/",
             scope=AUTH_SCOPE,
             cache_handler=spotipy.cache_handler.FlaskSessionCacheHandler(session),
         )
@@ -46,7 +48,7 @@ class SpotifyClient:
     @classmethod
     def get_max_tracks_per_year(cls, data: list) -> int:
         """
-        The maximum number of tracks a user can add to a playlist per year
+        The maximum number of tracks a user can add to a playlist per year.
         """
         most_artists_in_a_year = max([len(year['data']) for year in data])
         max_length = min(MAX_PLAYLIST_LENGTH / len(data), most_artists_in_a_year)
@@ -84,12 +86,19 @@ class SpotifyClient:
         if not track_data:
             return None, None
         try:
+            tracks_to_add_to_playlist = self.search_for_tracks(track_data, playlist_tracks_per_year,
+                                                               playlist_repeat_artists)
+            if not tracks_to_add_to_playlist:
+                logger.info(f"No tracks to add to this playlist")
+                return None, None
+
             playlist_id, playlist_url = self.create_playlist(
                 lastfm_user_data
             )
-            track_count = self.add_tracks_to_playlist(
-                playlist_id, track_data, playlist_tracks_per_year, playlist_repeat_artists
-            )
+            track_count = len(tracks_to_add_to_playlist)
+
+            self.batch_add_tracks_to_playlist(playlist_id=playlist_id, track_data=tracks_to_add_to_playlist)
+
             if playlist_url:
                 logger.info(
                     f"Playlist for {lastfm_user_data['username']} created with {track_count} tracks {playlist_url} "
@@ -99,12 +108,10 @@ class SpotifyClient:
                     "playlist-length", track_count
                 )
         except spotipy.exceptions.SpotifyException:
-            # TODO check status code
             GoogleMonitoringClient().increment_thread("spotify-forbidden-exception")
             logger.exception(f"Spotify exception")
             raise SpotifyForbiddenException
         return playlist_id, playlist_url
-
 
     def create_playlist(self, lastfm_user_data: dict = None) -> (str, str):
         """
@@ -132,7 +139,6 @@ class SpotifyClient:
         )
 
         playlist_url = playlist.get("external_urls", {}).get("spotify")
-        print(playlist_url)
         playlist_id = playlist.get("id")
         return playlist_id, playlist_url
 
@@ -144,15 +150,11 @@ class SpotifyClient:
         :param playlist_order_recent_first: Order by most recent year or not
         :return:
         """
-        this_year = datetime.today().year
         result = {}
         if not playlist_order_recent_first:
             data.reverse()
         for year_data in data:
             day = year_data["day"]
-            year = day.date().year
-            if year == this_year:
-                continue
             result[day] = []
             data = year_data["data"]
             for artist_data in data:
@@ -179,17 +181,16 @@ class SpotifyClient:
                     )
         return result
 
-    def add_tracks_to_playlist(
-            self, playlist_id: str, artist_tracks: dict, year_track_limit: int = None,
+    def search_for_tracks(
+            self, artist_tracks: dict, year_track_limit: int = None,
             playlist_repeat_artists: bool = False
-    ) -> int:
+    ) -> list:
         """
         Search for tracks and add them to the playlist
-        :param playlist_id: Spotify playlist ID
         :param artist_tracks: Formatted last.fm stats
         :param year_track_limit: Max number of tracks to add per year
         :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
-        :return: Number of tracks added to playlist
+        :return: Tracks to be added to playlist
         """
         logger.info(
             f"Years of data = {len(artist_tracks)} -> Tracks per year: {year_track_limit} "
@@ -218,10 +219,8 @@ class SpotifyClient:
                 found_track_uri = self.spotify_search(
                     artist, selected_track
                 )
-                if found_track_uri:
-                    tracks_to_add_to_playlist.append(
-                        {"track_name": selected_track, "artist": artist, "track_uri": found_track_uri}
-                    )
+                if found_track_uri and found_track_uri not in tracks_to_add_to_playlist:
+                    tracks_to_add_to_playlist.append(found_track_uri)
                     tracks_added_this_year += 1
                     if added_artist_tracks.get(artist):
                         added_artist_tracks[artist].append(selected_track)
@@ -232,16 +231,14 @@ class SpotifyClient:
                     current_search = selected_track
                     for retry_track in tracks[1:]:
                         logger.info(
-                            f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'\n"
+                            f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'"
                         )
                         current_search = retry_track
                         found_track_uri = self.spotify_search(
                             artist, retry_track
                         )
                         if found_track_uri:
-                            tracks_to_add_to_playlist.append(
-                                {"track_name": selected_track, "artist": artist, "track_uri": found_track_uri}
-                            )
+                            tracks_to_add_to_playlist.append(found_track_uri)
                             tracks_added_this_year += 1
                             if added_artist_tracks.get(artist):
                                 added_artist_tracks[artist].append(retry_track)
@@ -254,25 +251,21 @@ class SpotifyClient:
             logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}\n")
             track_count += tracks_added_this_year
         logger.info(f"Total tracks to add to playlist: {len(tracks_to_add_to_playlist)} track_count: {track_count}")
-        self.batch_add_tracks_to_playlist(playlist_id=playlist_id, track_data=tracks_to_add_to_playlist)
-        return track_count
+        return tracks_to_add_to_playlist
 
     def batch_add_tracks_to_playlist(self, playlist_id: str, track_data: list):
-        track_uris = []
         if len(track_data) > ADD_TO_PLAYLIST_BATCH_LIMIT:
-            for track in track_data[:ADD_TO_PLAYLIST_BATCH_LIMIT]:
-                # logger.info(f"Adding '{track['track_name']}' by {track['artist']}")
-                track_uris.append(track["track_uri"])
-            logger.info(f"Adding {len(track_uris)} tracks to playlist")
-            self.spotify_client.playlist_add_items(playlist_id, track_uris)
-            self.batch_add_tracks_to_playlist(playlist_id, track_data[ADD_TO_PLAYLIST_BATCH_LIMIT:])
-
+            batch = track_data[:ADD_TO_PLAYLIST_BATCH_LIMIT]
+            queue = track_data[ADD_TO_PLAYLIST_BATCH_LIMIT:]
         else:
-            for track in track_data:
-                # logger.info(f"Adding '{track['track_name']}' by {track['artist']}")
-                track_uris.append(track["track_uri"])
-            logger.info(f"Adding {len(track_uris)} tracks to playlist")
-            self.spotify_client.playlist_add_items(playlist_id, track_uris)
+            batch = track_data
+            queue = None
+
+        logger.info(f"Adding {len(batch)} tracks to playlist")
+        self.spotify_client.playlist_add_items(playlist_id, batch)
+
+        if queue:
+            self.batch_add_tracks_to_playlist(playlist_id, track_data[ADD_TO_PLAYLIST_BATCH_LIMIT:])
 
     def spotify_search(self, artist: str, track_name: str) -> str:
         """
@@ -288,23 +281,42 @@ class SpotifyClient:
             for char in ["(", ")", ".", "'"]:
                 search_term = search_term.replace(char, "")
             search_term = search_term.replace(" & ", " ")
+            search_term = search_term.strip()
             return search_term
 
         def _match_artist(_search_artist, _result_artist):
             _search_artist = _strip_search_term(_search_artist).replace(" and ", " ")
             _result_artist = _strip_search_term(_result_artist).replace(" and ", " ")
+            logger.debug(f"_search_artist = {_search_artist}")
+            logger.debug(f"_result_artist = {_result_artist}")
+            logger.debug(f"= {_search_artist == _result_artist}")
             if _search_artist == _result_artist or _search_artist == _result_artist.split(",")[0]:
+                return True
+            return False
+
+        def _incorrect_live_version(_search_track, _result_track):
+            if "live" in _result_track.lower() and "live" not in _search_track.lower():
                 return True
             return False
 
         track_name_search = _strip_search_term(track_name)
         artist_search = _strip_search_term(artist)
         logger.debug(f"Searching for {track_name_search} {artist_search}")
-        search_params = {"q": "track:" + f"{track_name_search} + {artist_search}", "type": "track"}
-        if self.available_market:
-            logger.debug(f"Spotify available_market:{self.available_market}")
-            search_params.update({"market": self.available_market})
-        search_result = self.spotify_client.search(**search_params)
+        search_query = f"{track_name_search} {artist_search}"
+        cached_result = self.firestore_client.get_cached_spotify_search_result(search_query=search_query,
+                                                                               available_market=self.available_market)
+        if cached_result:
+            search_result = cached_result.get("search_result")
+        else:
+            search_params = {"q": "track:" + search_query, "type": "track"}
+            if self.available_market:
+                logger.debug(f"Spotify available_market:{self.available_market}")
+                search_params.update({"market": self.available_market})
+            search_result = self.spotify_client.search(**search_params)
+            self.firestore_client.cache_spotify_search_result(search_query=search_query,
+                                                              available_market=self.available_market,
+                                                              search_result=search_result)
+        logger.debug(f"Spotify search_result = {search_result}")
         try:
             found_item = None
             if search_result.get("tracks"):
@@ -317,10 +329,8 @@ class SpotifyClient:
                         search_artists = item.get("artists")
                         for search_artist in search_artists:
                             search_artist_name = search_artist.get("name")
-
-                            if _match_artist(search_artist_name, artist) \
-                                    and " - live" not in found_track_name.lower() \
-                                    and "live at " not in found_track_name.lower():
+                            if _match_artist(search_artist_name, artist)\
+                                    and not _incorrect_live_version(track_name_search, found_track_name):
                                 found_item = item
                                 break
                         else:
@@ -339,11 +349,10 @@ class SpotifyClient:
             elif "[" in track_name and "]" in track_name:
                 track_name_without_brackets = re.sub("[\[].*?[\]]", "", track_name)
                 if track_name_without_brackets:
-                    logger.debug(f"Searching for {track_name} without brackets")
+                    logger.debug(f"Searching for {track_name} without square brackets")
                     return self.spotify_search(
                         artist, track_name_without_brackets
                     )
-
         except Exception:
             GoogleMonitoringClient().increment_thread("spotify-exception")
             logger.exception(f"Unhandled Spotify search error: {search_result}")

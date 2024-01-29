@@ -88,13 +88,11 @@ def get_cached_stats(username: str):
 def make_playlist(
     spotify_client: SpotifyClient,
     lastfm_user_data: dict = None,
-    data: dict = None,
     playlist_tracks_per_year: int = None,
     playlist_order_recent_first: bool = True,
     playlist_repeat_artists: bool = False,
 ):
-    if not data:
-        data = get_cached_stats(lastfm_user_data["username"]).get("data")
+    data = get_cached_stats(lastfm_user_data["username"]).get("data")
     return spotify_client.make_playlist(
         data, lastfm_user_data, playlist_tracks_per_year=playlist_tracks_per_year,
         playlist_order_recent_first=playlist_order_recent_first, playlist_repeat_artists=playlist_repeat_artists

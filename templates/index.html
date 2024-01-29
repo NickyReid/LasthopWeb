@@ -18,7 +18,7 @@
             <h1 class="fst-italic lh-1 mb-4">Lasthop</h1>
 
             {% if no_data_today %}
-            {% include 'partials/_no_data_for_today.html' %}
+            {% include 'partials/stats/_no_data_for_today.html' %}
             {% else %}
             <p class="mb-5">What were you listening to on this day in history?</p>
             {% endif %}
@@ -30,7 +30,7 @@
     {% endif %}
 
     {% if stats %}
-    {% include 'partials/_stats.html' %}
+    {% include 'partials/stats/_stats.html' %}
     {% endif %}
 
 </div>

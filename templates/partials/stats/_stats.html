@@ -1,9 +1,9 @@
 <div class="masthead-content text-white" style="padding-left: 15px;">
     {% if allow_playlists %}
-    {% include 'partials/_make_playlist.html' %}
+    {% include 'partials/playlist/_make_playlist.html' %}
 
     {% else %}
-    {% include 'partials/_sign_up_for_playlists.html' %}
+    {% include 'partials/playlist/_sign_up_for_playlists.html' %}
 
     {% endif %}
     <hr class="solid">
@@ -31,10 +31,10 @@
     <div id="view-type-switch" style="font-size:xx-small;color:#5bb9b9;padding-top:15px;" onclick="toggleStatsView()"><u>See All Scrobbles</u></div>
 
     <div id="stats-artist-view" style="display:block;">
-        {% include 'partials/_stats_top_artist_view.html' %}
+        {% include 'partials/stats/_stats_top_artist_view.html' %}
     </div>
     <div id="stats-chrono-view" style="display:none;">
-        {% include 'partials/_stats_chronological_view.html' %}
+        {% include 'partials/stats/_stats_chronological_view.html' %}
     </div>
     <hr class="solid">
 

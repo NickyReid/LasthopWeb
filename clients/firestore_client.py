@@ -1,11 +1,19 @@
 import logging
 import os
-
+import hashlib
 import google
+from datetime import datetime
+
+import pytz
+from dotenv import load_dotenv
+
 from google.cloud import firestore_v1 as firestore
 from clients.monitoring_client import GoogleMonitoringClient
 
+load_dotenv()
 logger = logging.getLogger(__name__)
+
+SHOPIFY_SEARCH_MAX_CACHE_AGE_HOURS = int(os.getenv("SHOPIFY_SEARCH_MAX_CACHE_AGE_HOURS") or 24)
 
 
 class Singleton(type):
@@ -165,4 +173,66 @@ class FirestoreClient(metaclass=Singleton):
             GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(
                 f"Exception occurred in firestore client on get_artist_tag for {artist}"
+            )
+
+    def cache_spotify_search_result(self, search_query: str, available_market: str, search_result: dict):
+        try:
+            date_cached = datetime.utcnow()
+            hash_key = hashlib.md5(f"{available_market}-{search_query}".encode()).hexdigest()
+            logger.info(
+                f"Caching Spotify search result for {hash_key} - '{available_market} - {search_query}'..."
+            )
+            doc_ref = self.client.collection("spotify_search_cache").document(hash_key)
+            doc_ref.set({
+                "search_query": search_query,
+                "available_market": available_market,
+                "search_result": search_result,
+                "date_cached": date_cached,
+            })
+        except:
+            GoogleMonitoringClient().increment_thread("firestore-exception")
+            logger.exception(
+                f"Exception occurred in firestore client on cache_spotify_search_result"
+            )
+
+    def get_cached_spotify_search_result(self, search_query: str, available_market: str,
+                                         max_age_hours: int = SHOPIFY_SEARCH_MAX_CACHE_AGE_HOURS):
+        try:
+            hash_key = hashlib.md5(f"{available_market}-{search_query}".encode()).hexdigest()
+            logger.debug(f"Getting Spotify search result for {hash_key} - '{available_market} - {search_query}'...")
+            doc_ref = self.client.collection("spotify_search_cache").document(hash_key)
+            doc = doc_ref.get()
+            if doc.to_dict():
+                date_cached = doc.to_dict().get("date_cached")
+                cached_available_market = doc.to_dict().get("available_market")
+                cached_search_query = doc.to_dict().get("search_query")
+                if date_cached:
+                    cache_age_seconds = (datetime.utcnow().replace(tzinfo=pytz.utc) - date_cached.replace(tzinfo=pytz.utc)).seconds
+                    if cache_age_seconds / 3600 <= max_age_hours:
+                        if not cached_available_market == available_market:
+                            logger.info(f"CACHE ERROR cached_available_market != available_market! "
+                                        f"{cached_available_market} != {available_market}")
+                            GoogleMonitoringClient().increment_thread("spotify-search-cache-error")
+                        elif not cached_search_query == search_query:
+                            logger.info(f"CACHE ERROR cached_search_query != search_query! "
+                                        f"{cached_search_query} != {search_query}")
+                            GoogleMonitoringClient().increment_thread("spotify-search-cache-error")
+                        else:
+                            logger.debug(
+                                f"Returning cached Spotify search result for '{available_market} - {search_query}'...")
+                            GoogleMonitoringClient().increment_thread("spotify-search-cache-hit")
+                            return doc.to_dict()
+                    else:
+                        logger.info(f"Cache for '{available_market} - {search_query}' expired ({cache_age_seconds} seconds)")
+                        GoogleMonitoringClient().increment_thread("spotify-search-cache-expired")
+
+            else:
+                logger.debug(
+                    f"No cached Spotify search result for '{available_market} - {search_query}'...")
+
+                GoogleMonitoringClient().increment_thread("spotify-search-cache-miss")
+        except:
+            GoogleMonitoringClient().increment_thread("firestore-exception")
+            logger.exception(
+                f"Exception occurred in firestore client on get_cached_spotify_search_result"
             )

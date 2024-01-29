@@ -38,6 +38,8 @@ def index():
     date_cached = None
     allow_playlists = True
 
+    spotify_authorized = False
+
     no_data_today = None
 
     playlist_opt_tracks_per_year = None
@@ -73,7 +75,7 @@ def index():
                 session["access_token"] = sp_oauth.get_access_token(
                     spotify_auth_code, as_dict=False
                 )
-
+                spotify_authorized = True
                 spotify_available_market = controller.get_spotify_available_market_from_timezone(tz)
                 spotify_client = SpotifyClient(sp_oauth, available_market=spotify_available_market, tz_offset=tz_offset)
                 playlist_id, playlist_url = controller.make_playlist(
@@ -190,4 +192,5 @@ def index():
         max_tracks_per_year=max_tracks_per_year,
         default_tracks_per_year=default_tracks_per_year,
         no_data_today=no_data_today,
+        spotify_authorized=spotify_authorized,
     )

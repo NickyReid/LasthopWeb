@@ -1,0 +1,50 @@
+<form id="make-playlist-form" method="post" onsubmit="return formLoadingButton('create-playlist-btn', 'make-playlist-form', 'create-playlist-btn')">
+
+    <div class="row playlist-options-row">
+        <div style="width:50%; padding-right:5px;">
+            <label style="font-size:small;float: right;" for="playlist-length-slider">Songs for each year</label>
+        </div>
+        <div style="width:50%; padding-left:5px;">
+            <input class="form-range" style="width: 35%;float: left;" id="playlist-length-slider" name="playlist_opt_tracks_per_year" type="range" min="{{ min_tracks_per_year }}" max="{{ max_tracks_per_year }}" value="{{ default_tracks_per_year }}" oninput="this.nextElementSibling.value = ' ~ ' + this.value">
+            <output style="display:block;padding: 5px;font-size:x-small;"> ~ {{ default_tracks_per_year }} </output>
+        </div>
+    </div>
+
+    <div class="row playlist-options-row">
+        <div style="width:50%; padding-right:5px;">
+            <label for="recent-first-checkbox" style="font-size:small;float: right;">Most recent first</label>
+        </div>
+        <div style="width:50%; padding-left:5px;">
+            <label class="switch" style="float: left;">
+                <input id="recent-first-checkbox" name="playlist_opt_order_recent_first" type="checkbox" class="switch-input" checked>
+                <span class="switch-label"></span>
+                <span class="switch-handle"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="row playlist-options-row">
+        <div style="width:50%; padding-right:5px;">
+            <label for="one-per-artist-checkbox" style="font-size:small;float: right;">Allow repeat artists</label>
+        </div>
+        <div style="width:50%; padding-left:5px;">
+            <label class="switch" style="float: left;">
+                <input id="one-per-artist-checkbox" name="playlist_opt_repeat_artists" type="checkbox" class="switch-input">
+                <span class="switch-label"></span>
+                <span class="switch-handle"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="row playlist-options-row">
+        <div style="width:50%; padding-right:5px;">
+            <div style="font-size: small;color: #4fb1b1;float: right;padding: 4px 6px;padding-right: 0px;"  onclick="togglePlaylistOptions()">
+                Close
+            </div>
+        </div>
+        <div style="width:50%; padding-left:5px;">
+            <input type="hidden"  name="make_playlist" value="True">
+            <input id="create-playlist-btn" type="submit" class="btn btn-primary" style="font-size: small;" value="Create">
+        </div>
+    </div>
+</form>

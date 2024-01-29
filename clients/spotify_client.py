@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 HOST = os.getenv("HOST")
 AUTH_SCOPE = "playlist-modify-private"
+ADD_TO_PLAYLIST_BATCH_LIMIT = 100
 DEFAULT_PLAYLIST_LENGTH = 50
 DEFAULT_TRACKS_PER_YEAR = 5
 MAX_PLAYLIST_LENGTH = int(os.getenv("MAX_PLAYLIST_LENGTH")) or 120
@@ -103,6 +104,7 @@ class SpotifyClient:
             logger.exception(f"Spotify exception")
             raise SpotifyForbiddenException
         return playlist_id, playlist_url
+
 
     def create_playlist(self, lastfm_user_data: dict = None) -> (str, str):
         """
@@ -194,6 +196,7 @@ class SpotifyClient:
         )
         added_artist_tracks = {}
         track_count = 0
+        tracks_to_add_to_playlist = []
         for year, artist_track_data in artist_tracks.items():
             tracks_added_this_year = 0
 
@@ -216,12 +219,8 @@ class SpotifyClient:
                     artist, selected_track
                 )
                 if found_track_uri:
-                    self.add_track_to_playlist(
-                        self.spotify_client,
-                        playlist_id,
-                        found_track_uri,
-                        selected_track,
-                        artist,
+                    tracks_to_add_to_playlist.append(
+                        {"track_name": selected_track, "artist": artist, "track_uri": found_track_uri}
                     )
                     tracks_added_this_year += 1
                     if added_artist_tracks.get(artist):
@@ -240,12 +239,8 @@ class SpotifyClient:
                             artist, retry_track
                         )
                         if found_track_uri:
-                            self.add_track_to_playlist(
-                                self.spotify_client,
-                                playlist_id,
-                                found_track_uri,
-                                retry_track,
-                                artist,
+                            tracks_to_add_to_playlist.append(
+                                {"track_name": selected_track, "artist": artist, "track_uri": found_track_uri}
                             )
                             tracks_added_this_year += 1
                             if added_artist_tracks.get(artist):
@@ -255,16 +250,29 @@ class SpotifyClient:
                             break
                 if not found_track_uri:
                     logger.info(f"Couldn't find any tracks for {artist} :(")
+
             logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}\n")
             track_count += tracks_added_this_year
+        logger.info(f"Total tracks to add to playlist: {len(tracks_to_add_to_playlist)} track_count: {track_count}")
+        self.batch_add_tracks_to_playlist(playlist_id=playlist_id, track_data=tracks_to_add_to_playlist)
         return track_count
 
-    @staticmethod
-    def add_track_to_playlist(
-            spotify_client: spotipy.Spotify, playlist_id: str, track_uri: str, track_name: str, artist: str
-    ):
-        logger.debug(f"Adding '{track_name}' by {artist}")
-        spotify_client.playlist_add_items(playlist_id, [track_uri])
+    def batch_add_tracks_to_playlist(self, playlist_id: str, track_data: list):
+        track_uris = []
+        if len(track_data) > ADD_TO_PLAYLIST_BATCH_LIMIT:
+            for track in track_data[:ADD_TO_PLAYLIST_BATCH_LIMIT]:
+                # logger.info(f"Adding '{track['track_name']}' by {track['artist']}")
+                track_uris.append(track["track_uri"])
+            logger.info(f"Adding {len(track_uris)} tracks to playlist")
+            self.spotify_client.playlist_add_items(playlist_id, track_uris)
+            self.batch_add_tracks_to_playlist(playlist_id, track_data[ADD_TO_PLAYLIST_BATCH_LIMIT:])
+
+        else:
+            for track in track_data:
+                # logger.info(f"Adding '{track['track_name']}' by {track['artist']}")
+                track_uris.append(track["track_uri"])
+            logger.info(f"Adding {len(track_uris)} tracks to playlist")
+            self.spotify_client.playlist_add_items(playlist_id, track_uris)
 
     def spotify_search(self, artist: str, track_name: str) -> str:
         """

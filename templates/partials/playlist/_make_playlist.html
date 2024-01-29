@@ -1,25 +1,25 @@
-{% if playlist_url %}
-{% include 'partials/playlist/_open_playlist.html' %}
-{% endif %}
+<div>
+{% if lastfm_user_data and stats %}
+    <div class="row">
+        <div style="text-align: center;font-size: larger;padding-bottom: 10px;">
+            Make a playlist
+        </div>
+    </div>
 
-{% if lastfm_user_data and stats and auth_url %}
-{% if playlist_url %}
-<div id="make-playlist-box" style="display:none;">
+    {% if not allow_playlists %}
+    {% include 'partials/playlist/_sign_up_for_playlists.html' %}
     {% else %}
+
+    {% if playlist_url %}
+    {% include 'partials/playlist/_open_playlist.html' %}
+    {% endif %}
+
+ {% if playlist_url %}
+    <div id="make-playlist-box" style="display:none;">
+        {% else %}
     <div style="display:block;">
         {% endif %}
-        <div id="make-playlist-btn"  style="text-align: center;margin: 10px;padding:0px" >
-            <button class="btn btn-primary" onclick="togglePlaylistOptions()">
-                Make a Playlist
-            </button>
-        </div>
-
-        <div id="playlist-options" style="text-align: left;display:none;">
-            <div class="row">
-                <div style="text-align: center;font-size: larger;">
-                    Make a playlist on<img style="width:90px;margin:10px" src="static/assets/img/spotify-logo.png" alt="spotify-logo" border="0"/>
-                </div>
-            </div>
+        <div style="text-align: left;">
          {% if spotify_authorized %}
          {% include 'partials/playlist/_playlist_options.html' %}
          {% else %}
@@ -27,4 +27,6 @@
          {% endif %}
         </div>
     </div>
-    {% endif %}
+{% endif %}
+{% endif %}
+</div>

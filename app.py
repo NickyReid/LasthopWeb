@@ -42,9 +42,6 @@ def index():
 
     no_data_today = None
 
-    playlist_opt_tracks_per_year = None
-    playlist_opt_order_recent_first = None
-    playlist_opt_repeat_artists = None
     min_tracks_per_year, max_tracks_per_year, default_tracks_per_year = None, None, None
 
     try:
@@ -61,31 +58,17 @@ def index():
         if "tz" in session:
             tz = session["tz"]
 
-        if "playlist_opt_tracks_per_year" in session:
-            playlist_opt_tracks_per_year = int(session["playlist_opt_tracks_per_year"])
-        if "playlist_opt_order_recent_first" in session:
-            playlist_opt_order_recent_first = bool(session["playlist_opt_order_recent_first"])
-        if "playlist_opt_repeat_artists" in session:
-            playlist_opt_repeat_artists = bool(session["playlist_opt_repeat_artists"])
+        if "access_token" in session:
+            spotify_authorized = True
 
         if request.method == "GET":
             spotify_auth_code = request.args.get("code")
             if spotify_auth_code:
-                sp_oauth = SpotifyClient.get_auth_manager(session)
-                session["access_token"] = sp_oauth.get_access_token(
+                spotify_auth_manager = SpotifyClient.get_auth_manager(session)
+                session["access_token"] = spotify_auth_manager.get_access_token(
                     spotify_auth_code, as_dict=False
                 )
                 spotify_authorized = True
-                spotify_available_market = controller.get_spotify_available_market_from_timezone(tz)
-                spotify_client = SpotifyClient(sp_oauth, available_market=spotify_available_market, tz_offset=tz_offset)
-                playlist_id, playlist_url = controller.make_playlist(
-                    spotify_client=spotify_client,
-                    lastfm_user_data=lastfm_user_data,
-                    playlist_tracks_per_year=playlist_opt_tracks_per_year,
-                    playlist_order_recent_first=playlist_opt_order_recent_first,
-                    playlist_repeat_artists=playlist_opt_repeat_artists,
-                )
-                session["playlist_url"] = playlist_url
                 return redirect("/")
 
             elif request.args.get("clear"):
@@ -98,9 +81,12 @@ def index():
             if form_username:
                 logger.info(f"New username {form_username} entered, clearing session")
                 auth_url = session.get("auth_url")
+                access_token = session.get("access_token")
                 session.clear()
                 if auth_url:
                     session["auth_url"] = auth_url
+                if access_token:
+                    session["access_token"] = access_token
                 playlist_url = None
             if request.form.get("tz_offset"):
                 session["tz_offset"] = tz_offset = int(request.form["tz_offset"])
@@ -120,14 +106,25 @@ def index():
             make_playlist = request.form.get("make_playlist")
             if make_playlist:
                 session["make_playlist"] = make_playlist
-                session["playlist_opt_tracks_per_year"] = request.form.get("playlist_opt_tracks_per_year")
-                session["playlist_opt_order_recent_first"] =  bool(request.form.get("playlist_opt_order_recent_first"))
-                session["playlist_opt_repeat_artists"] =  bool(request.form.get("playlist_opt_repeat_artists"))
-                return redirect(auth_url)
+                playlist_opt_tracks_per_year = int(request.form.get("playlist_opt_tracks_per_year"))
+                playlist_opt_order_recent_first = bool(request.form.get("playlist_opt_order_recent_first"))
+                playlist_opt_repeat_artists = bool(request.form.get("playlist_opt_repeat_artists"))
+
+                spotify_available_market = controller.get_spotify_available_market_from_timezone(tz)
+                spotify_client = SpotifyClient(session=session, available_market=spotify_available_market,
+                                               tz_offset=tz_offset)
+                playlist_id, playlist_url = controller.make_playlist(
+                    spotify_client=spotify_client,
+                    lastfm_user_data=lastfm_user_data,
+                    playlist_tracks_per_year=playlist_opt_tracks_per_year,
+                    playlist_order_recent_first=playlist_opt_order_recent_first,
+                    playlist_repeat_artists=playlist_opt_repeat_artists,
+                )
+                session["playlist_url"] = playlist_url
 
         if username:
-            if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
-            # if username.lower() not in PLAYLIST_APPROVED_USERS:
+            # if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
+            if username.lower() not in PLAYLIST_APPROVED_USERS:
                 allow_playlists = False
             if lastfm_user_data:
                 message = (
@@ -144,8 +141,8 @@ def index():
                     # message = f"{username} has no listening data for today"
 
                 if not auth_url and not playlist_url:
-                    sp_oauth = SpotifyClient.get_auth_manager(session)
-                    auth_url = sp_oauth.get_authorize_url()
+                    spotify_auth_manager = SpotifyClient.get_auth_manager(session)
+                    auth_url = spotify_auth_manager.get_authorize_url()
                     session["auth_url"] = auth_url
             else:
                 message = f"{username} not found on Last.fm"
@@ -178,7 +175,7 @@ def index():
 
     logger.info(f"Response message: {message} Referer:{request.referrer}")
     logger.info(f"{username} User-Agent: {request.headers.get('User-Agent')}")
-
+    logger.info(f"playlist_url ={playlist_url}")
     return render_template(
         "index.html",
         lastfm_user_data=lastfm_user_data,

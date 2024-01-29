@@ -222,9 +222,9 @@ class LastfmClient:
             data_dict["timestamp"] = line.get("date", {}).get("uts")
             data_dict["time_text"] = line.get("date", {}).get("#text")
             data.append(data_dict)
-        if True:
-            result = {"day": day, "data": data}
-            queue.put(result)
+
+        result = {"day": day, "data": data}
+        queue.put(result)
 
     def get_lastfm_tracks_for_day(self, date: datetime) -> list:
         lastfm_response = self.lastfm_api_get_tracks(date, 1)
@@ -262,11 +262,9 @@ class LastfmClient:
                     del lastfm_tracks[0]
         return lastfm_tracks or []
 
-    def get_top_tag_for_artist(self, artist: str, check_cache: bool = True) -> str:
-        top_tag = None
+    def get_top_tag_for_artist(self, artist: str) -> str:
         firestore_client = FirestoreClient()
-        if check_cache:
-            top_tag = firestore_client.get_artist_tag(artist)
+        top_tag = firestore_client.get_artist_tag(artist)
         if not top_tag:
             logger.info(f"Getting top tag for {artist}...")
             api_response = self.last_fm_api_query(

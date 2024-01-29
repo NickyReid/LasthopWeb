@@ -38,6 +38,8 @@ def index():
     date_cached = None
     allow_playlists = True
 
+    no_data_today = None
+
     playlist_opt_tracks_per_year = None
     playlist_opt_order_recent_first = None
     playlist_opt_repeat_artists = None
@@ -126,17 +128,18 @@ def index():
             # if username.lower() not in PLAYLIST_APPROVED_USERS:
                 allow_playlists = False
             if lastfm_user_data:
+                message = (
+                    f"{username} has been on Last.fm since "
+                    f"{datetime.strftime(lastfm_user_data.get('join_date').date(), '%-d %B %Y')}"
+                )
                 stats, date_cached = controller.get_stats(lastfm_user_data, tz_offset)
                 if stats:
                     min_tracks_per_year = 1
                     max_tracks_per_year = SpotifyClient.get_max_tracks_per_year(stats)
                     default_tracks_per_year = min(max_tracks_per_year, DEFAULT_TRACKS_PER_YEAR)
-                    message = (
-                        f"{username} has been on Last.fm since "
-                        f"{datetime.strftime(lastfm_user_data.get('join_date').date(), '%-d %B %Y')}"
-                    )
                 else:
-                    message = f"{username} has no listening data for today"
+                    no_data_today = True
+                    # message = f"{username} has no listening data for today"
 
                 if not auth_url and not playlist_url:
                     sp_oauth = SpotifyClient.get_auth_manager(session)
@@ -186,4 +189,5 @@ def index():
         min_tracks_per_year=min_tracks_per_year,
         max_tracks_per_year=max_tracks_per_year,
         default_tracks_per_year=default_tracks_per_year,
+        no_data_today=no_data_today,
     )

@@ -1,0 +1,11 @@
+<p class="mb-5">
+    {% if lastfm_user_data.real_name %}
+    {{ lastfm_user_data.real_name }}
+    {% else %}
+    {{ lastfm_user_data.username }}
+    {% endif %}
+    has no listening history for {{ date_cached.strftime('%-d %B') }}.
+    <br/>
+    <br/>
+    Come back tomorrow ❤️
+</p>

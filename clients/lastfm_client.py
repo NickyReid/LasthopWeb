@@ -8,7 +8,7 @@ from clients import RetryException, retry
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from clients.firestore_client import FirestoreClient
-from clients.monitoring_client import GoogleMonitoringClient
+from clients.monitoring_client import GoogleMonitoringClient, stats_profile
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ load_dotenv()
 LAST_FM_API_KEY = os.getenv("LAST_FM_API_KEY")
 LAST_FM_BASE_URL = "http://ws.audioscrobbler.com/2.0"
 HEADERS = {"User-Agent": "LasthopWeb/1.0"}
-ADD_ARTIST_TAGS = True
+ADD_ARTIST_TAGS = False
 INCLUDE_THIS_YEAR = False
 
 
@@ -28,8 +28,8 @@ class LastfmClient:
         self.username = lastfm_username
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
-        self.tz_offset = tz_offset or 0
-        today = datetime.utcnow() - timedelta(minutes=tz_offset)
+        # self.tz_offset = tz_offset or 0
+        today = datetime.utcnow()
         if INCLUDE_THIS_YEAR:
             self.stats_start_date = today
         else:
@@ -68,13 +68,28 @@ class LastfmClient:
             GoogleMonitoringClient().increment_thread("lastfm-exception")
             logger.exception(f"Unhandled exception for Last.fm {api_method}")
 
-    def get_stats(self) -> list:
-        data_for_all_days = self.get_data_for_all_days()
-        summary = self.summarize_data(data_for_all_days)
-        stats_date_created = datetime.utcnow()
-        FirestoreClient().set_user_data(self.username, summary, stats_date_created)
+    def get_stats(self, tz_offset: int) -> (list, datetime):
+        data = None
+        date_cached = None
+
+        cached_data = FirestoreClient().get_user_data(self.username)
+        if cached_data:
+            date_cached = cached_data.get("date_cached")
+            if date_cached and date_cached.date() == datetime.utcnow().date():
+                logger.info(f"Data cached for {self.username} at {date_cached} -> Returning cached data")
+                data = cached_data["data"]
+
+        if not data:
+            data = self.get_data_for_all_days()
+            date_cached = datetime.utcnow()
+            FirestoreClient().set_user_data(self.username, data, datetime.utcnow())
+
+        summary = self.summarize_and_filter_for_timezone(data, tz_offset)
+
+        # stats_date_created = datetime.utcnow()
+        # FirestoreClient().set_user_data(self.username, summary, stats_date_created)
         FirestoreClient().increment_user_days_visited(self.username)
-        return summary
+        return summary, date_cached
 
     @classmethod
     def get_lastfm_user_data(cls, username: str) -> dict:
@@ -96,29 +111,43 @@ class LastfmClient:
             "total_tracks": int(api_response["user"].get("playcount")),
         }
 
-    def summarize_data(self, data: list) -> list:
+    @stats_profile
+    def summarize_and_filter_for_timezone(self, data: list, tz_offset: int) -> list:
         """
         Summarize the user's last.fm stats
         """
         logger.info(f"Summarizing data for {self.username}...")
+        # print(data)
         result = []
+        start_time = datetime.utcnow().replace(tzinfo=pytz.UTC).replace(hour=0).replace(minute=0).replace(
+            second=0).replace(
+            microsecond=0
+        ) + timedelta(minutes=tz_offset)
+        end_time = start_time + timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
+
         for line in data:
-            day = (line["day"] - timedelta(minutes=self.tz_offset)).replace(tzinfo=None)
+            day = (line["day"] - timedelta(minutes=tz_offset)).replace(tzinfo=None)
+            # day = line["day"]
             data = line["data"]
             artist_scrobble_dict = {}
             scrobble_list = []
+            start_time = start_time.replace(year=day.year)
+            end_time = end_time.replace(year=day.year)
             for scrobble in data:
-                artist = scrobble["artist"]
-                track_name = scrobble["track_name"]
                 timestamp = scrobble["timestamp"]
                 if not timestamp:  # Don't add currently playing track to stats
                     continue
-                date = datetime.fromtimestamp(int(timestamp), tz=pytz.UTC) - timedelta(
-                    minutes=self.tz_offset
-                )
+
+                scrobbled_date = datetime.fromtimestamp(int(timestamp), tz=pytz.UTC)
+                if not (start_time <= scrobbled_date <= end_time):
+                    continue
+
+                artist = scrobble["artist"]
+                track_name = scrobble["track_name"]
+
                 track_date_dict = {
                     "track_name": track_name,
-                    "date": date,
+                    "date": scrobbled_date - timedelta(minutes=tz_offset),
                     "artist": artist,
                 }
                 if not artist_scrobble_dict.get(artist):
@@ -287,15 +316,24 @@ class LastfmClient:
         :param page_num: Page number.
         :return: JSON response from API.
         """
-        date_start = date.replace(tzinfo=pytz.UTC).replace(hour=0).replace(minute=0).replace(second=0).replace(
+        date = date.replace(tzinfo=pytz.UTC).replace(hour=0).replace(minute=0).replace(second=0).replace(
             microsecond=0
-        ) + timedelta(minutes=self.tz_offset)
-        date_start_epoch = int(date_start.timestamp())
-        date_end = date_start + timedelta(
-            hours=23, minutes=59, seconds=59, microseconds=999999
         )
+
+        date_start = date - timedelta(hours=14)
+
+        date_end = date + timedelta(
+            hours=23, minutes=59, seconds=59, microseconds=999999
+        ) + timedelta(hours=14)
+
+        date_start_epoch = int(date_start.timestamp())
         date_end_epoch = int(date_end.timestamp())
-        logger.debug(f"Last.fm query start date: {date_start}")
+
+        print(f"Last.fm query start date: {date_start}")
+        logger.info(f"Last.fm query start date: {date_start}")
+        print(f"Last.fm query end date: {date_end}")
+        logger.info(f"Last.fm query end date: {date_end}")
+
         api_response = self.last_fm_api_query(
             api_method="user.getrecenttracks",
             username=self.username,

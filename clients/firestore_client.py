@@ -8,7 +8,7 @@ import pytz
 from dotenv import load_dotenv
 
 from google.cloud import firestore_v1 as firestore
-from clients.monitoring_client import GoogleMonitoringClient
+from clients.monitoring_client import GoogleMonitoringClient, stats_profile
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -78,6 +78,7 @@ class FirestoreClient(metaclass=Singleton):
             GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on create_user")
 
+    @stats_profile
     def get_user_data(self, username):
         try:
             doc_ref = self.client.collection("users").document(
@@ -116,6 +117,7 @@ class FirestoreClient(metaclass=Singleton):
             GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on set_user_data")
 
+    @stats_profile
     def increment_user_days_visited(self, username):
         try:
             doc_ref = self.client.collection("users").document(

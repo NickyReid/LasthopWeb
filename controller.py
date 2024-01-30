@@ -47,37 +47,90 @@ def clear_stats(username: str):
 
 
 @stats_profile
-def get_stats(lastfm_user_data: dict, tz_offset: int, check_cache=True):
+def get_stats(lastfm_user_data: dict, tz_offset: int):
     data = None
     username = lastfm_user_data.get("username", "").lower()
     date_cached = None
-    logger.debug(f"username:{username} check_cache:{check_cache} lastfm_user_data:{lastfm_user_data}")
+    logger.debug(f"username:{username} lastfm_user_data:{lastfm_user_data}")
     if username:
-        if check_cache:
-            cached_data = get_cached_stats(username)
-            if cached_data:
-                date_cached = cached_data.get("date_cached")
-                if date_cached:
-                    logger.debug(f"date_cached: {date_cached}")
-                    date_cached = date_cached.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
-                    today = (datetime.utcnow() - timedelta(minutes=tz_offset)).date()
-                    logger.debug(f"date_cached adjusted: {date_cached}")
-                    logger.debug(f"today: {today}")
-                    if date_cached.date() == today:
-                        logger.info(
-                            f"Data cached for {username} at {date_cached.date()} -> Returning cached data"
-                        )
-                        data = cached_data.get("data")
-        if not data:
+        # if True:
+        #     cached_data = get_cached_stats(username)
+        #     if cached_data:
+        #         date_cached = cached_data.get("date_cached")
+        #         if date_cached:
+        #             # logger.info(f"date_cached: {date_cached}")
+        #             # date_cached = date_cached.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
+        #             # today = (datetime.utcnow() - timedelta(minutes=tz_offset)).date()
+        #             date_cached = date_cached.replace(tzinfo=pytz.UTC).date()
+        #             today = datetime.utcnow().date()
+        #             # logger.debug(f"date_cached adjusted: {date_cached}")
+        #
+        #             logger.info(f"today date: {today}")
+        #             logger.info(f"date_cached date: {date_cached}")
+        #             if date_cached == today:
+        #                 logger.info(
+        #                     f"Data cached for {username} at {date_cached} -> Returning cached data"
+        #                 )
+        #                 data = cached_data.get("data")
+        if True:
             lfm_client = LastfmClient(
-                username, lastfm_user_data["join_date"], tz_offset
+                username, lastfm_user_data["join_date"]
             )
-            data = lfm_client.get_stats()
-            date_cached = datetime.utcnow() - timedelta(minutes=tz_offset)
+            data, date_cached = lfm_client.get_stats(tz_offset=tz_offset)
+            # date_cached = datetime.utcnow() - timedelta(minutes=tz_offset)
+            # date_cached = datetime.utcnow()
 
+    # data = filter_stats_for_timezone(data, tz_offset)
     years_of_data = len(data) if data else 0
     logger.info(f"Stats summary: {username} had {years_of_data} years of data")
     return data, date_cached
+
+
+def filter_stats_for_timezone(stats: list, tz_offset: int) -> list:
+    # print(stats)
+    result = []
+    # date = date.replace(tzinfo=pytz.UTC).replace(hour=0).replace(minute=0).replace(second=0).replace(
+    #     microsecond=0
+    # )
+    start_time = datetime.utcnow().replace(tzinfo=pytz.UTC).replace(hour=0).replace(minute=0).replace(second=0).replace(
+        microsecond=0
+    ) + timedelta(minutes=tz_offset)
+    print(f"start_time = {start_time}")
+    end_time = start_time + timedelta(hours = 23, minutes = 59, seconds = 59, microseconds = 999999)
+    print(f"end_time = {end_time}")
+
+    for year_data in stats:
+        print(year_data["data"])
+        print()
+        print()
+        print()
+        year_dict = {}
+        filtered_data = []
+        print(f"year_data['day'] = {year_data['day']}")
+        start_time = start_time.replace(year=year_data["day"].year)
+        end_time = end_time.replace(year=year_data["day"].year)
+        filtered_track_data = {"track_data": {"tracks": []}}
+        for item in year_data["data"]:
+            artist = item["artist"]
+            # filtered_tracks = []
+            for track in item["track_data"]["tracks"]:
+                # print(start_time)
+                # print(track["date"])
+                # print(end_time)
+                if start_time <= track["date"] <= end_time:
+                    filtered_track_data["track_data"]["tracks"].append(track)
+                    # filtered_tracks.append(track)
+            # if filtered_tracks:
+            #     filtered_track_data["track_data"]["tracks"].append({
+            #         "track_data": filtered_track_data
+            #     })
+        if filtered_track_data:
+            result.append({
+                "day": year_data["day"].replace(tzinfo=pytz.UTC) + timedelta(minutes=tz_offset),
+                "data": filtered_track_data
+            })
+    print(result)
+    return result
 
 
 def get_cached_stats(username: str):

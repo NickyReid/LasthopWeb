@@ -6,7 +6,7 @@ import pytz
 import controller
 from spotipy.oauth2 import SpotifyOauthError
 from clients.spotify_client import SpotifyClient, SpotifyForbiddenException, DEFAULT_TRACKS_PER_YEAR
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, session
 from clients.monitoring_client import GoogleMonitoringClient
@@ -32,7 +32,7 @@ def index():
     message = None
     playlist_url = None
     stats = None
-    tz_offset = None
+    tz_offset = 0
     tz = None
     auth_url = None
     date_cached = None
@@ -174,7 +174,7 @@ def index():
 
     logger.info(f"Response message: {message} Referer:{request.referrer}")
     logger.info(f"{username} User-Agent: {request.headers.get('User-Agent')}")
-
+    today = (datetime.utcnow()).replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
     return render_template(
         "index.html",
         lastfm_user_data=lastfm_user_data,
@@ -184,6 +184,7 @@ def index():
         stats=stats,
         allow_playlists=allow_playlists,
         date_cached=date_cached,
+        today=today,
         min_tracks_per_year=min_tracks_per_year,
         max_tracks_per_year=max_tracks_per_year,
         default_tracks_per_year=default_tracks_per_year,

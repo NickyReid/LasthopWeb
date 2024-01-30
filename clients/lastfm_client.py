@@ -117,18 +117,19 @@ class LastfmClient:
         """
         logger.info(f"Summarizing data for {self.username} timezone offset = {tz_offset}...")
         result = []
-        start_time = ((datetime.utcnow()).replace(tzinfo=pytz.UTC)).replace(hour=0).replace(minute=0).replace(
+        today = (datetime.utcnow()).replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
+        start_time = today.replace(hour=0).replace(minute=0).replace(
             second=0).replace(
             microsecond=0
         ) + timedelta(minutes=tz_offset)
         end_time = start_time + timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
         for line in data:
-            day = line["day"].replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
             data = line["data"]
             artist_scrobble_dict = {}
             scrobble_list = []
-            start_time = start_time.replace(year=day.year)
-            end_time = end_time.replace(year=day.year)
+            start_time = start_time.replace(year=line["day"].year)
+            end_time = end_time.replace(year=line["day"].year)
+
             for scrobble in data:
                 timestamp = scrobble["timestamp"]
                 if not timestamp:
@@ -181,7 +182,7 @@ class LastfmClient:
                             artist_scrobble_list[0]["tag"] = top_tag
                 result.append(
                     {
-                        "day": day,
+                        "day": start_time - timedelta(minutes=tz_offset),
                         "data": artist_scrobble_list,
                         "scrobble_list": scrobble_list,
                     }
@@ -323,16 +324,10 @@ class LastfmClient:
         :param page_num: Page number.
         :return: JSON response from API.
         """
-        date = date.replace(tzinfo=pytz.UTC).replace(hour=0).replace(minute=0).replace(second=0).replace(
-            microsecond=0
-        )
+        date = date.replace(tzinfo=pytz.UTC)
+        date_start = date - timedelta(hours=48)
 
-        date_start = date - timedelta(hours=14)
-
-        date_end = date + timedelta(
-            hours=23, minutes=59, seconds=59, microseconds=999999
-        ) + timedelta(hours=14)
-
+        date_end = date + timedelta(hours=48)
         date_start_epoch = int(date_start.timestamp())
         date_end_epoch = int(date_end.timestamp())
 

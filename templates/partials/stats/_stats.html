@@ -8,16 +8,16 @@
         {% else %}
         {{ lastfm_user_data.username }}'s
         {% endif %}
-        listening history for {{ date_cached.strftime('%-d %B') }}
+        listening history for {{ today.strftime('%-d %B') }}
     </h4>
 
     <div class="row">
         <div id="view-info-top-artists" style="font-size:small;text-align:center;display:block;">
-            Your top artists on {{ date_cached.strftime('%-d %B') }} for each year. Expand to see more.
+            Your top artists on {{ today.strftime('%-d %B') }} for each year. Expand to see more.
         </div>
 
         <div id="view-info-all-scrobbles" style="font-size:small;text-align:center;display:none;">
-            All your scrobbles on {{ date_cached.strftime('%-d %B') }} for each year. Expand to see more.
+            All your scrobbles on {{ today.strftime('%-d %B') }} for each year. Expand to see more.
         </div>
     </div>
 

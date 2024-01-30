@@ -77,14 +77,17 @@ class LastfmClient:
                 data = cached_data["data"]
                 artist_tags = cached_data.get("artist_tags")
 
+                # TODO remove eventually
+                if data and data[0].get("scrobble_list"):
+                    logger.info(f"Old cache")
+                    data = None
+
         if not data:
             data = self.get_data_for_all_days()
             date_cached = datetime.utcnow()
             FirestoreClient().set_user_data(self.username, data, datetime.utcnow())
             FirestoreClient().increment_user_days_visited(self.username)
-
         summary = self.summarize_and_filter_for_timezone(data, tz_offset, artist_tags)
-
         return summary, date_cached.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
 
     @classmethod
@@ -186,6 +189,7 @@ class LastfmClient:
         sorted_result = sorted(result, key=lambda d: d["day"], reverse=True)
         return sorted_result
 
+    @stats_profile
     def get_data_for_all_days(self) -> list:
         """
         Query last.fm for the user's scrobbles for each year

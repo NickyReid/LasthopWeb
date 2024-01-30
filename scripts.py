@@ -15,6 +15,6 @@ auth_manager = spotipy.oauth2.SpotifyOAuth(scope=AUTH_SCOPE, redirect_uri="http:
 c = SpotifyClient(auth_manager=auth_manager, available_market="ZA")
 
 
-track_name = "Blue Boredom (with Sky Ferreira)"
-artist = "DIIV"
+track_name = "Come With Me (Original Mix)"
+artist = "Nora En Pure"
 c.spotify_search(track_name=track_name, artist=artist)

@@ -179,7 +179,7 @@ class FirestoreClient(metaclass=Singleton):
         try:
             date_cached = datetime.utcnow()
             hash_key = hashlib.md5(f"{available_market}-{search_query}".encode()).hexdigest()
-            logger.info(
+            logger.debug(
                 f"Caching Spotify search result for {hash_key} - '{available_market} - {search_query}'..."
             )
             doc_ref = self.client.collection("spotify_search_cache").document(hash_key)

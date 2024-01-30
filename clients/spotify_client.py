@@ -192,12 +192,44 @@ class SpotifyClient:
         :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
         :return: Tracks to be added to playlist
         """
+
+        tracks_to_add_to_playlist = []
+        added_artist_tracks = {}
+        track_count = 0
+
+        def _choose_track_for_artist(_artist: str, _tracks: list) -> str or None:
+            """
+            Given a list of tracks scrobbled for an artist, find one that can be be added to the playlist
+            :return:
+            """
+            _tracks = list(set(_tracks)) if len(_tracks) > 1 else _tracks
+            _tracks = [i for i in _tracks if i not in added_artist_tracks.get(_artist, [])]
+            random.shuffle(_tracks)
+            if not _tracks:
+                return
+
+            selected_track = _tracks[0]
+            _found_track_uri = self.spotify_search(
+                _artist, selected_track
+            )
+            if _found_track_uri:
+                if _found_track_uri not in tracks_to_add_to_playlist:
+                    tracks_to_add_to_playlist.append(_found_track_uri)
+                    if added_artist_tracks.get(_artist):
+                        added_artist_tracks[_artist].append(selected_track)
+                    else:
+                        added_artist_tracks[_artist] = [selected_track]
+                else:
+                    logger.info(f"DUPLICATE: '{selected_track}' by {_artist}")
+            else:
+                logger.info(f"NOT FOUND:'{selected_track}' by '{_artist}'\n")
+                _found_track_uri = _choose_track_for_artist(_artist,  _tracks[1:])
+            return _found_track_uri
+
         logger.info(
             f"Years of data = {len(artist_tracks)} -> Tracks per year: {year_track_limit} "
         )
-        added_artist_tracks = {}
-        track_count = 0
-        tracks_to_add_to_playlist = []
+
         for year, artist_track_data in artist_tracks.items():
             tracks_added_this_year = 0
 
@@ -210,43 +242,12 @@ class SpotifyClient:
                     continue
 
                 tracks = artist_dict["tracks"]
-                tracks = list(set(tracks)) if len(tracks) > 1 else tracks
-                tracks = [i for i in tracks if i not in added_artist_tracks.get(artist, [])]
-                random.shuffle(tracks)
-                if not tracks:
-                    continue
-                selected_track = tracks[0]
-                found_track_uri = self.spotify_search(
-                    artist, selected_track
-                )
-                if found_track_uri and found_track_uri not in tracks_to_add_to_playlist:
-                    tracks_to_add_to_playlist.append(found_track_uri)
+                found_track_uri = _choose_track_for_artist(artist, tracks)
+                if found_track_uri:
                     tracks_added_this_year += 1
-                    if added_artist_tracks.get(artist):
-                        added_artist_tracks[artist].append(selected_track)
-                    else:
-                        added_artist_tracks[artist] = [selected_track]
-
                 else:
-                    current_search = selected_track
-                    for retry_track in tracks[1:]:
-                        logger.info(
-                            f"Couldn't find '{current_search}' by {artist}... Searching for '{retry_track}'"
-                        )
-                        current_search = retry_track
-                        found_track_uri = self.spotify_search(
-                            artist, retry_track
-                        )
-                        if found_track_uri:
-                            tracks_to_add_to_playlist.append(found_track_uri)
-                            tracks_added_this_year += 1
-                            if added_artist_tracks.get(artist):
-                                added_artist_tracks[artist].append(retry_track)
-                            else:
-                                added_artist_tracks[artist] = [retry_track]
-                            break
-                if not found_track_uri:
-                    logger.info(f"Couldn't find any tracks for {artist} :(")
+                    logger.info(f"NO TRACKS FOUND FOR ARTIST: {artist}\n")
+                    # logger.info(f"Couldn't find any tracks for {artist}\n")
 
             logger.info(f"Tracks added for {year.year}: {tracks_added_this_year}/{len(artist_track_data)}\n")
             track_count += tracks_added_this_year
@@ -278,9 +279,10 @@ class SpotifyClient:
             search_term = search_term.lower().split("feat.")[0]
             search_term = search_term.lower().split("ft.")[0]
             search_term = search_term.lower().split("featuring")[0]
+            for term in [" & ", " + ", "(album version)", "(original mix)"]:
+                search_term = search_term.replace(term, " ")
             for char in ["(", ")", ".", "'"]:
                 search_term = search_term.replace(char, "")
-            search_term = search_term.replace(" & ", " ")
             search_term = search_term.strip()
             return search_term
 
@@ -301,8 +303,9 @@ class SpotifyClient:
 
         track_name_search = _strip_search_term(track_name)
         artist_search = _strip_search_term(artist)
-        logger.debug(f"Searching for {track_name_search} {artist_search}")
+        logger.info(f"SEARCH   :'{track_name}' by '{artist}'")
         search_query = f"{track_name_search} {artist_search}"
+        logger.debug(f"SEARCH QUERY: {search_query}")
         cached_result = self.firestore_client.get_cached_spotify_search_result(search_query=search_query,
                                                                                available_market=self.available_market)
         if cached_result:
@@ -332,6 +335,7 @@ class SpotifyClient:
                             if _match_artist(search_artist_name, artist)\
                                     and not _incorrect_live_version(track_name_search, found_track_name):
                                 found_item = item
+                                logger.info(f"FOUND    :'{found_track_name}' by '{search_artist_name}'")
                                 break
                         else:
                             continue

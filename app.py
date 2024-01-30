@@ -103,9 +103,7 @@ def index():
                 if lastfm_user_data and lastfm_user_data.get("username"):
                     username = session["username"] = lastfm_user_data["username"]
 
-            make_playlist = request.form.get("make_playlist")
-            if make_playlist:
-                session["make_playlist"] = make_playlist
+            if request.form.get("make_playlist"):
                 playlist_opt_tracks_per_year = int(request.form.get("playlist_opt_tracks_per_year"))
                 playlist_opt_order_recent_first = bool(request.form.get("playlist_opt_order_recent_first"))
                 playlist_opt_repeat_artists = bool(request.form.get("playlist_opt_repeat_artists"))
@@ -123,8 +121,8 @@ def index():
                 session["playlist_url"] = playlist_url
 
         if username:
-            # if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
-            if username.lower() not in PLAYLIST_APPROVED_USERS:
+            if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
+            # if username.lower() not in PLAYLIST_APPROVED_USERS:
                 allow_playlists = False
             if lastfm_user_data:
                 message = (
@@ -175,7 +173,7 @@ def index():
 
     logger.info(f"Response message: {message} Referer:{request.referrer}")
     logger.info(f"{username} User-Agent: {request.headers.get('User-Agent')}")
-    logger.info(f"playlist_url ={playlist_url}")
+
     return render_template(
         "index.html",
         lastfm_user_data=lastfm_user_data,

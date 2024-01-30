@@ -117,6 +117,7 @@ def index():
                     playlist_tracks_per_year=playlist_opt_tracks_per_year,
                     playlist_order_recent_first=playlist_opt_order_recent_first,
                     playlist_repeat_artists=playlist_opt_repeat_artists,
+                    tz_offset=tz_offset,
                 )
                 session["playlist_url"] = playlist_url
 

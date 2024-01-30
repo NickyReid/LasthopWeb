@@ -17,18 +17,15 @@ load_dotenv()
 LAST_FM_API_KEY = os.getenv("LAST_FM_API_KEY")
 LAST_FM_BASE_URL = "http://ws.audioscrobbler.com/2.0"
 HEADERS = {"User-Agent": "LasthopWeb/1.0"}
-ADD_ARTIST_TAGS = False
+ADD_ARTIST_TAGS = True
 INCLUDE_THIS_YEAR = False
 
 
 class LastfmClient:
-    def __init__(
-        self, lastfm_username: str, lastfm_join_date: datetime, tz_offset: int = 0
-    ):
+    def __init__(self, lastfm_username: str, lastfm_join_date: datetime):
         self.username = lastfm_username
         self.join_date = lastfm_join_date.replace(tzinfo=pytz.UTC)
         self.api_key = LAST_FM_API_KEY
-        # self.tz_offset = tz_offset or 0
         today = datetime.utcnow()
         if INCLUDE_THIS_YEAR:
             self.stats_start_date = today
@@ -71,25 +68,24 @@ class LastfmClient:
     def get_stats(self, tz_offset: int) -> (list, datetime):
         data = None
         date_cached = None
-
+        artist_tags = None
         cached_data = FirestoreClient().get_user_data(self.username)
         if cached_data:
             date_cached = cached_data.get("date_cached")
             if date_cached and date_cached.date() == datetime.utcnow().date():
                 logger.info(f"Data cached for {self.username} at {date_cached} -> Returning cached data")
                 data = cached_data["data"]
+                artist_tags = cached_data.get("artist_tags")
 
         if not data:
             data = self.get_data_for_all_days()
             date_cached = datetime.utcnow()
             FirestoreClient().set_user_data(self.username, data, datetime.utcnow())
+            FirestoreClient().increment_user_days_visited(self.username)
 
-        summary = self.summarize_and_filter_for_timezone(data, tz_offset)
+        summary = self.summarize_and_filter_for_timezone(data, tz_offset, artist_tags)
 
-        # stats_date_created = datetime.utcnow()
-        # FirestoreClient().set_user_data(self.username, summary, stats_date_created)
-        FirestoreClient().increment_user_days_visited(self.username)
-        return summary, date_cached
+        return summary, date_cached.replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
 
     @classmethod
     def get_lastfm_user_data(cls, username: str) -> dict:
@@ -112,22 +108,19 @@ class LastfmClient:
         }
 
     @stats_profile
-    def summarize_and_filter_for_timezone(self, data: list, tz_offset: int) -> list:
+    def summarize_and_filter_for_timezone(self, data: list, tz_offset: int, artist_tags: dict = None) -> list:
         """
         Summarize the user's last.fm stats
         """
-        logger.info(f"Summarizing data for {self.username}...")
-        # print(data)
+        logger.info(f"Summarizing data for {self.username} timezone offset = {tz_offset}...")
         result = []
-        start_time = datetime.utcnow().replace(tzinfo=pytz.UTC).replace(hour=0).replace(minute=0).replace(
+        start_time = ((datetime.utcnow()).replace(tzinfo=pytz.UTC)).replace(hour=0).replace(minute=0).replace(
             second=0).replace(
             microsecond=0
         ) + timedelta(minutes=tz_offset)
         end_time = start_time + timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
-
         for line in data:
-            day = (line["day"] - timedelta(minutes=tz_offset)).replace(tzinfo=None)
-            # day = line["day"]
+            day = line["day"].replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
             data = line["data"]
             artist_scrobble_dict = {}
             scrobble_list = []
@@ -135,10 +128,11 @@ class LastfmClient:
             end_time = end_time.replace(year=day.year)
             for scrobble in data:
                 timestamp = scrobble["timestamp"]
-                if not timestamp:  # Don't add currently playing track to stats
+                if not timestamp:
                     continue
 
                 scrobbled_date = datetime.fromtimestamp(int(timestamp), tz=pytz.UTC)
+
                 if not (start_time <= scrobbled_date <= end_time):
                     continue
 
@@ -159,28 +153,36 @@ class LastfmClient:
                     artist_scrobble_dict[artist]["playcount"] += 1
                     artist_scrobble_dict[artist]["tracks"].append(track_date_dict)
                 scrobble_list.append(track_date_dict)
-            artist_scrobble_list = []
-            for artist, track_data in artist_scrobble_dict.items():
-                artist_scrobble_list.append(
-                    {"artist": artist, "track_data": track_data}
+            if artist_scrobble_dict:
+                artist_scrobble_list = []
+                for artist, track_data in artist_scrobble_dict.items():
+                    artist_scrobble_list.append(
+                        {"artist": artist, "track_data": track_data}
+                    )
+                artist_scrobble_list = sorted(
+                    artist_scrobble_list,
+                    key=lambda d: d["track_data"]["playcount"],
+                    reverse=True,
                 )
-            artist_scrobble_list = sorted(
-                artist_scrobble_list,
-                key=lambda d: d["track_data"]["playcount"],
-                reverse=True,
-            )
-            if ADD_ARTIST_TAGS:
-                top_artist_d = artist_scrobble_list[0]["artist"]
-                top_tag = self.get_top_tag_for_artist(top_artist_d)
-                if top_tag:
-                    artist_scrobble_list[0]["tag"] = top_tag
-            result.append(
-                {
-                    "day": day,
-                    "data": artist_scrobble_list,
-                    "scrobble_list": scrobble_list,
-                }
-            )
+                if ADD_ARTIST_TAGS:
+                    top_artist_d = artist_scrobble_list[0]["artist"].lower()
+                    if not artist_tags:
+                        artist_tags = {}
+                    if artist_tags.get(top_artist_d):
+                        artist_scrobble_list[0]["tag"] = artist_tags[top_artist_d]
+                    else:
+                        top_tag = self.get_top_tag_for_artist(top_artist_d)
+                        if top_tag:
+                            artist_tags.update({top_artist_d: top_tag})
+                            FirestoreClient().update_user_artist_tags(self.username, artist_tags)
+                            artist_scrobble_list[0]["tag"] = top_tag
+                result.append(
+                    {
+                        "day": day,
+                        "data": artist_scrobble_list,
+                        "scrobble_list": scrobble_list,
+                    }
+                )
         sorted_result = sorted(result, key=lambda d: d["day"], reverse=True)
         return sorted_result
 
@@ -291,6 +293,7 @@ class LastfmClient:
                     del lastfm_tracks[0]
         return lastfm_tracks or []
 
+    @stats_profile
     def get_top_tag_for_artist(self, artist: str) -> str:
         firestore_client = FirestoreClient()
         top_tag = firestore_client.get_artist_tag(artist)
@@ -329,9 +332,7 @@ class LastfmClient:
         date_start_epoch = int(date_start.timestamp())
         date_end_epoch = int(date_end.timestamp())
 
-        print(f"Last.fm query start date: {date_start}")
         logger.info(f"Last.fm query start date: {date_start}")
-        print(f"Last.fm query end date: {date_end}")
         logger.info(f"Last.fm query end date: {date_end}")
 
         api_response = self.last_fm_api_query(

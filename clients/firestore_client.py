@@ -106,6 +106,17 @@ class FirestoreClient(metaclass=Singleton):
                 f"Exception occurred in firestore client on get_user_count"
             )
 
+    def update_user_artist_tags(self, username, artist_tags):
+        try:
+            doc_ref = self.client.collection("users").document(
+                self.strip_string(username)
+            )
+            doc_ref.set({"artist_tags": artist_tags}, merge=True)
+
+        except:
+            GoogleMonitoringClient().increment_thread("firestore-exception")
+            logger.exception(f"Exception occurred in firestore client on update_user_artist_tags")
+
     def set_user_data(self, username, data, date_cached=None):
         try:
             logger.debug(f"Caching data for {self.strip_string(username)}...")

@@ -20,8 +20,8 @@ ADD_TO_PLAYLIST_BATCH_LIMIT = 100
 DEFAULT_PLAYLIST_LENGTH = 50
 DEFAULT_TRACKS_PER_YEAR = 5
 MAX_PLAYLIST_LENGTH = int(os.getenv("MAX_PLAYLIST_LENGTH")) or 120
-SKIP_RECENTLY_PLAYED_TRACKS = True
-RECENTLY_PLAYED_DEFAULT_TIME = 2
+# SKIP_RECENTLY_PLAYED_TRACKS = True
+# RECENTLY_PLAYED_DEFAULT_TIME = 2
 
 
 class SpotifyForbiddenException(Exception):
@@ -65,7 +65,7 @@ class SpotifyClient:
             playlist_tracks_per_year: int = None,
             playlist_order_recent_first: bool = True,
             playlist_repeat_artists: bool = False,
-            recently_played_tracks_start_date: datetime = None
+            skip_recently_played_start_date: datetime = None
     ) -> (str, str):
         """
         Make a Spotify playlist, search for tracks and add them to the playlist
@@ -74,14 +74,14 @@ class SpotifyClient:
         :param playlist_tracks_per_year: Max number of tracks per year
         :param playlist_order_recent_first: Order by most recent year or not
         :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
-        :param recently_played_tracks_start_date: Don't add tracks that have been played since this date
+        :param skip_recently_played_start_date: Don't add tracks that have been played since this date
         :return: (playlist_id, playlist_url): Spotify playlist ID and URL
         """
         logger.info(f"Playlist options: user:{lastfm_user_data['username']}; "
                     f"playlist_tracks_per_year:{playlist_tracks_per_year}; "
                     f"playlist_order_recent_first:{playlist_order_recent_first}; "
                     f"playlist_repeat_artists:{playlist_repeat_artists}; "
-                    f"recently_played_tracks_start_date:{recently_played_tracks_start_date}; "
+                    f"recently_played_tracks_start_date:{skip_recently_played_start_date}; "
                     f"available_market:{self.available_market}; tz_offset:{self.tz_offset}")
         playlist_tracks_per_year = playlist_tracks_per_year or DEFAULT_TRACKS_PER_YEAR
         if not data:
@@ -91,44 +91,34 @@ class SpotifyClient:
         logger.info(f"Making playlist for {lastfm_user_data['username']}")
 
         recently_played_tracks = []
-        if SKIP_RECENTLY_PLAYED_TRACKS:
+        if skip_recently_played_start_date:
             lastfm_client = LastfmClient(lastfm_user_data['username'], lastfm_user_data['join_date'])
-            # TODO param
-            recently_played_start_date = datetime.utcnow() - timedelta(RECENTLY_PLAYED_DEFAULT_TIME)
-            for recent_scrobbles in lastfm_client.get_scrobbles_since(recently_played_start_date):
-                for scrobble in recent_scrobbles["data"]:
-                    artist = scrobble.get("artist")
-                    track = scrobble.get("track_name")
-                    hash_key = hash(f"{artist}{track}")
-                    if hash_key not in recently_played_tracks:
+            for scrobble in lastfm_client.get_scrobbles_since(skip_recently_played_start_date):
+                artist = scrobble.get("artist")
+                track = scrobble.get("track_name")
+                hash_key = hash(f"{artist}{track}")
+                if hash_key not in recently_played_tracks:
+                    recently_played_tracks.append(hash_key)
+            logger.info(f"Skipping {len(recently_played_tracks)} recently played tracks")
 
-                        recently_played_tracks.append(hash_key)
-            # print(f"recently_played_tracks = {recently_played_tracks}")
-
-            # recently_played_tracks = [x.get("data") for x in ]
-            # for t in recently_played_tracks:
-            #     print(t.get("day"))
-            #     print(len(t.get("data")))
-
-        track_data = self.format_track_data(data, playlist_order_recent_first, recently_played_tracks)
+        track_data = self.format_track_data(data, playlist_order_recent_first)
         if not track_data:
             return None, None
         try:
 
-            # tracks_to_add_to_playlist = self.search_for_tracks(track_data, playlist_tracks_per_year,
-            #                                                    playlist_repeat_artists)
-            tracks_to_add_to_playlist = None
+            tracks_to_add_to_playlist = self.search_for_tracks(track_data, playlist_tracks_per_year,
+                                                               playlist_repeat_artists, recently_played_tracks)
+
             if not tracks_to_add_to_playlist:
                 logger.info(f"No tracks to add to this playlist")
                 return None, None
 
-            playlist_id, playlist_url, track_count = 1, "222", 2
-            # playlist_id, playlist_url = self.create_playlist(
-            #     lastfm_user_data
-            # )
-            # track_count = len(tracks_to_add_to_playlist)
-            #
-            # self.batch_add_tracks_to_playlist(playlist_id=playlist_id, track_data=tracks_to_add_to_playlist)
+            playlist_id, playlist_url = self.create_playlist(
+                lastfm_user_data
+            )
+            track_count = len(tracks_to_add_to_playlist)
+
+            self.batch_add_tracks_to_playlist(playlist_id=playlist_id, track_data=tracks_to_add_to_playlist)
 
             if playlist_url:
                 logger.info(
@@ -174,22 +164,18 @@ class SpotifyClient:
         return playlist_id, playlist_url
 
     @staticmethod
-    def format_track_data(data: list, playlist_order_recent_first: bool = True,
-                          recently_played_tracks: [] = None) -> dict:
+    def format_track_data(data: list, playlist_order_recent_first: bool = True) -> dict:
         """
         Format the user's last.fm stats so a playlist can be created
         :param data: The user's last.fm stats
         :param playlist_order_recent_first: Order by most recent year or not
-        :param recently_played_tracks: Recently played tracks to exclude
         :return:
         """
         result = {}
         if not playlist_order_recent_first:
             data.reverse()
         for year_data in data:
-            # print(f"year_data= {year_data}")
             day = year_data["day"]
-            # print(f"day= {day}")
             result[day] = []
             data = year_data["data"]
             for artist_data in data:
@@ -198,14 +184,7 @@ class SpotifyClient:
                 tracks = artist_data["track_data"]["tracks"]
                 for track_data in tracks:
                     track_name = track_data["track_name"]
-                    # print(artist)
-                    # print(track_name)
-                    hash_key = hash(f"{artist}{track_name}")
-                    # print(f"hash_key= {hash_key}")
-                    if hash_key in recently_played_tracks:
-                        logger.info(f"Skipping recently played track '{track_name}' by '{artist}'")
-                        continue
-                    track_name = track_name.replace("'", "")
+                    # track_name = track_name.replace("'", "")
                     if artist_tracks_dict.get(artist):
                         artist_tracks_dict[artist].append(track_name)
                     else:
@@ -226,13 +205,14 @@ class SpotifyClient:
 
     def search_for_tracks(
             self, artist_tracks: dict, year_track_limit: int = None,
-            playlist_repeat_artists: bool = False
+            playlist_repeat_artists: bool = False, recently_played_tracks: [] = None
     ) -> list:
         """
         Search for tracks and add them to the playlist
         :param artist_tracks: Formatted last.fm stats
         :param year_track_limit: Max number of tracks to add per year
         :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
+        :param recently_played_tracks: Recently played tracks to skip
         :return: Tracks to be added to playlist
         """
 
@@ -247,13 +227,24 @@ class SpotifyClient:
             """
             _tracks = list(set(_tracks)) if len(_tracks) > 1 else _tracks
             _tracks = [i for i in _tracks if i not in added_artist_tracks.get(_artist, [])]
+
+            if recently_played_tracks:
+                _unique_tracks = []
+                for t in _tracks:
+                    hash_key = hash(f"{_artist}{t}")
+                    if hash_key in recently_played_tracks:
+                        logger.info(f"Skipping recently played track '{t}' by '{artist}'")
+                    else:
+                        _unique_tracks.append(t)
+                _tracks = _unique_tracks
+
             random.shuffle(_tracks)
             if not _tracks:
                 return
 
             selected_track = _tracks[0]
             _found_track_uri = self.spotify_search(
-                _artist, selected_track
+                _artist, selected_track, recently_played_tracks
             )
             if _found_track_uri:
                 if _found_track_uri not in tracks_to_add_to_playlist:
@@ -311,7 +302,7 @@ class SpotifyClient:
         if queue:
             self.batch_add_tracks_to_playlist(playlist_id, track_data[ADD_TO_PLAYLIST_BATCH_LIMIT:])
 
-    def spotify_search(self, artist: str, track_name: str) -> str:
+    def spotify_search(self, artist: str, track_name: str, recently_played_tracks: []) -> str:
         """
         Search Spotify for the track
         :return: Track URI if track is found
@@ -377,6 +368,12 @@ class SpotifyClient:
                             search_artist_name = search_artist.get("name")
                             if _match_artist(search_artist_name, artist)\
                                     and not _incorrect_live_version(track_name_search, found_track_name):
+                                if recently_played_tracks:
+                                    hash_key = hash(f"{search_artist_name}{found_track_name}")
+                                    if hash_key in recently_played_tracks:
+                                        logger.info(f"Skipping recently played track '{found_track_name}'"
+                                                    f" by '{search_artist_name}'")
+                                        break
                                 found_item = item
                                 logger.info(f"FOUND    :'{found_track_name}' by '{search_artist_name}'")
                                 break
@@ -398,7 +395,7 @@ class SpotifyClient:
                 if track_name_without_brackets:
                     logger.debug(f"Searching for {track_name} without square brackets")
                     return self.spotify_search(
-                        artist, track_name_without_brackets
+                        artist, track_name_without_brackets, recently_played_tracks
                     )
         except Exception:
             GoogleMonitoringClient().increment_thread("spotify-exception")

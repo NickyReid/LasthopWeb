@@ -106,7 +106,6 @@ var showPlaylistOptions = false;
     var morePlaylistOptions = document.getElementById("more-playlist-options");
 
     showMorePlaylistOptions = !showMorePlaylistOptions;
-    console.log(showMorePlaylistOptions);
     if (showMorePlaylistOptions == true){
      console.log(showMorePlaylistOptions);
         morePlaylistOptions.style.display = "block";
@@ -114,5 +113,18 @@ var showPlaylistOptions = false;
         morePlaylistOptions.style.display = "none";
     }
 
+ };
+
+  var skipRecentlyPlayed = false;
+
+  function toggleSkipRecentlyPlayed(){
+    var skipRecentlyPlayedOptions = document.getElementById("skip-recent-options");
+
+    skipRecentlyPlayed = !skipRecentlyPlayed;
+    if (skipRecentlyPlayed == true){
+        skipRecentlyPlayedOptions.style.display = "block";
+    } else {
+        skipRecentlyPlayedOptions.style.display = "none";
+    }
  };
 

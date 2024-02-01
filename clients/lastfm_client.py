@@ -49,6 +49,7 @@ class LastfmClient:
             f"{LAST_FM_BASE_URL}/?method={api_method}"
             f"&api_key={LAST_FM_API_KEY}"
             f"&format=json"
+            f"&limit=200"
             f"{''.join(params)}"
         )
 
@@ -134,13 +135,11 @@ class LastfmClient:
             end_time = end_time.replace(year=line["day"].year)
 
             for scrobble in data:
-                # print(f"scrobble= {scrobble}")
                 timestamp = scrobble["timestamp"]
                 if not timestamp:
                     continue
 
                 scrobbled_date = datetime.fromtimestamp(int(timestamp), tz=pytz.UTC)
-
                 if not (start_time <= scrobbled_date <= end_time):
                     continue
 
@@ -195,7 +194,7 @@ class LastfmClient:
         return sorted_result
 
     @stats_profile
-    def get_data_for_days(self, list_of_dates: [datetime]) -> list:
+    def get_data_for_days(self, list_of_dates: [datetime], cache_results: bool = False) -> list:
         """
         Query last.fm for the user's scrobbles for each year
         """
@@ -204,28 +203,22 @@ class LastfmClient:
         jobs = []
         result = []
         queue = multiprocessing.Queue()
-        user_cached_scrobbles = FirestoreClient().get_all_user_lastfm_scrobbles(self.username)
+        # user_cached_scrobbles = {}
+        # firestore_client = FirestoreClient()
+        # user_cached_scrobbles = None
+        # doc_ref = firestore_client.client.collection("user_lastfm_data").document(
+        #     firestore_client.strip_string(self.username)
+        # )
+        # doc = doc_ref.get()
+        # if doc.to_dict():
+        #     user_cached_scrobbles = doc.to_dict()
+        # user_cached_scrobbles = firestore_client.get_all_user_lastfm_scrobbles(self.username)
         for day in list_of_dates:
-            #  TODO check cache
-            if user_cached_scrobbles and user_cached_scrobbles.get(str(day.date())):
-                cached_scrobbles = user_cached_scrobbles[str(day.date())]
-                # print(f"cached_scrobbles= {user_cached_scrobbles}")
-                if "no data" in cached_scrobbles:
-                    print(f"{day} CACHED NO DATA")
-                else:
-                    print(f"{day} CACHED")
-                    day_data = {
-                     "day": day,
-                     "data": cached_scrobbles
-                    }
-                    result.append(day_data)
-            else:
-                print(f"{day} NOT CACHED")
-                job = multiprocessing.Process(
-                    target=self.get_data_for_day, args=(day, queue)
-                )
-                jobs.append(job)
-                job.start()
+            job = multiprocessing.Process(
+                target=self.get_data_for_day, args=(day, queue, cache_results)
+            )
+            jobs.append(job)
+            job.start()
 
         job_count = 0
         while job_count < len(jobs):
@@ -234,11 +227,9 @@ class LastfmClient:
                 job_count += 1
                 if day_data.get("data"):
                     result.append(day_data)
-                    #  TODO cache here
 
         for job in jobs:
             job.join()
-        #  TODO or cache here?
         return result
 
     def get_list_of_year_dates(self) -> [datetime]:
@@ -247,25 +238,21 @@ class LastfmClient:
         Each year has 3 dates to account for timezone differences
         """
         date_to_process = self.stats_start_date
-        print(f"date_to_process={date_to_process}")
+
         date_to_process = date_to_process.replace(hour=0).replace(minute=0).replace(second=0).replace(microsecond=0)
 
         days = []
         while date_to_process.date() >= self.join_date.date():
             days.append(date_to_process)
-            days.append(date_to_process - timedelta(days=1))
-            days.append(date_to_process + timedelta(days=1))
+            # days.append(date_to_process - timedelta(hours=14))
+            # days.append(date_to_process + timedelta(hours=38))
             if date_to_process.month == 2 and date_to_process.day == 29:  # Leap year
                 date_to_process = date_to_process - relativedelta(years=4)
             else:
                 date_to_process = date_to_process - relativedelta(years=1)
         return days
 
-    def get_data_for_day(self, day: datetime, queue: multiprocessing.Queue):
-        """
-        Query last.fm for the user's scrobbles on a given day
-        """
-        raw_data = self.get_lastfm_tracks_for_day(day)
+    def form_data_dict_from_api_response(self, raw_data: []) -> []:
         data = []
         for line in raw_data:
             data_dict = {}
@@ -283,12 +270,72 @@ class LastfmClient:
             data_dict["artist"] = artist
             data_dict["track_name"] = title
             data_dict["timestamp"] = line.get("date", {}).get("uts")
-            data_dict["time_text"] = line.get("date", {}).get("#text")
+            # data_dict["time_text"] = line.get("date", {}).get("#text")
             data.append(data_dict)
+        return data
 
+    def get_data_for_day(self, day: datetime, queue: multiprocessing.Queue, cache_results: bool = True):
+        """
+        Query last.fm for the user's scrobbles on a given day
+        """
+        raw_data = self.get_lastfm_tracks_for_day(day)
+        # data = []
+        # for line in raw_data:
+        #     data_dict = {}
+        #     artist = line.get("artist", {}).get("#text")
+        #     title = line.get("name")
+        #     if "[Live]" in title.lower():
+        #         title = title.replace("[Live]", "")
+        #     elif "(Live)" in title.lower():
+        #         title = title.replace("(Live)", "")
+        #     elif "[live]" in title.lower():
+        #         title = title.replace("[live]", "")
+        #     elif "(live)" in title.lower():
+        #         title = title.replace("(live)", "")
+        #
+        #     data_dict["artist"] = artist
+        #     data_dict["track_name"] = title
+        #     data_dict["timestamp"] = line.get("date", {}).get("uts")
+        #     # data_dict["time_text"] = line.get("date", {}).get("#text")
+        #     data.append(data_dict)
+        data = self.form_data_dict_from_api_response(raw_data)
         result = {"day": day, "data": data}
-        FirestoreClient().set_user_lastfm_scrobbles(self.username, data, day)
         queue.put(result)
+
+    # def format_lastfm_scrobble_respone(self, lastfm_response: dict) -> []:
+    #     lastfm_tracks = lastfm_response.get("recenttracks", {}).get("track")
+    #     num_pages = int(
+    #         lastfm_response.get("recenttracks", {})
+    #             .get("@attr", {})
+    #             .get("totalPages", 0)
+    #     )
+    #     if num_pages > 1:
+    #         for page_num in range(2, num_pages + 1):
+    #             lastfm_response = self.lastfm_api_get_scrobbles(date, page_num)
+    #             lastfm_tracks.extend(
+    #                 lastfm_response.get("recenttracks", {}).get("track")
+    #             )
+    #
+    #     if lastfm_tracks:
+    #         if isinstance(lastfm_tracks, dict):
+    #             lastfm_tracks = [lastfm_tracks]
+    #
+    #         if lastfm_tracks and len(lastfm_tracks) > 0:
+    #             #  Remove currently playing song from past results
+    #             if (
+    #                     lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
+    #                     and date.date() != datetime.today().date()
+    #             ):
+    #                 del lastfm_tracks[0]
+    #             #  Remove duplicated playing song from current results
+    #             elif (
+    #                     lastfm_tracks[0].get("@attr", {}).get("nowplaying", False)
+    #                     and date.date() == datetime.today().date()
+    #                     and len(lastfm_tracks) > 1
+    #                     and lastfm_tracks[0].get("name") == lastfm_tracks[1].get("name")
+    #             ):
+    #                 del lastfm_tracks[0]
+    #     return lastfm_tracks or []
 
     def get_lastfm_tracks_for_day(self, date: datetime) -> list:
         logger.info(f"Getting data from Last.fm for {self.username} date:{date}...")
@@ -353,22 +400,14 @@ class LastfmClient:
         :param page_num: Page number.
         :return: JSON response from API.
         """
-        # date = date.replace(tzinfo=pytz.UTC)
-        # date_start = date - timedelta(hours=48)
-        # date_end = date + timedelta(hours=48)
+        date = date.replace(tzinfo=pytz.UTC)
+        date_start = date - timedelta(hours=14)
+        date_end = date + timedelta(hours=38)
 
-        #  TODO get buffer as a seperate date in list
-
-        date_start = date.replace(tzinfo=pytz.UTC)
-        date_end = date_start + timedelta(hours=24)
         date_start_epoch = int(date_start.timestamp())
         date_end_epoch = int(date_end.timestamp())
-        # logger.info(f"Last.fm query start date: {date_start}")
-        # logger.info(f"Last.fm query end date: {date_end}")
-
-        print(f"Last.fm query start date: {date_start}")
-        print(f"Last.fm query end date: {date_end}")
-        print(f"page_num: {page_num}")
+        logger.info(f"Last.fm query start date: {date_start}")
+        logger.info(f"Last.fm query end date: {date_end}")
 
         api_response = self.last_fm_api_query(
             api_method="user.getrecenttracks",
@@ -393,14 +432,58 @@ class LastfmClient:
             date_to_process = date_to_process + timedelta(days=1)
         return days
 
+    @stats_profile
     def get_scrobbles_since(self, start_date: datetime):
         """
         Get scrobbles since start_date
         """
-        # start_date = start_date.replace(hour=0).replace(minute=0).replace(second=0).replace(microsecond=0)
-        list_of_dates = self.get_list_of_dates(start_date)
-        # TODO check cache
-        data = self.get_data_for_days(list_of_dates)
-        # TODO cache
-        return data
+        date_start_epoch = int(start_date.timestamp())
+        page_num = 1
+        jobs = []
+        queue = multiprocessing.Queue()
+        lastfm_tracks, num_pages = self.get_recent_tracks_by_page(date_start_epoch, page_num)
+        while num_pages > page_num:
+            page_num = page_num + 1
+            job = multiprocessing.Process(
+                target=self.get_recent_tracks_by_page_thread, args=(date_start_epoch, page_num, queue,)
+            )
+            jobs.append(job)
+            job.start()
 
+        job_count = 0
+        while job_count < len(jobs):
+            data = queue.get()
+            if data:
+                job_count += 1
+                lastfm_tracks.extend(data)
+
+        for job in jobs:
+            job.join()
+
+        return lastfm_tracks
+
+    def get_recent_tracks_by_page(self, date_start_epoch: int, page_num: int):
+        api_response = self.last_fm_api_query(
+            api_method="user.getrecenttracks",
+            username=self.username,
+            _from=date_start_epoch,
+            page=page_num,
+        )
+        num_pages = int(
+            api_response.get("recenttracks", {}).get("@attr", {}).get("totalPages", 0)
+        )
+        lastfm_tracks = api_response.get("recenttracks", {}).get("track")
+        if lastfm_tracks:
+            if isinstance(lastfm_tracks, dict):
+                lastfm_tracks = [lastfm_tracks]
+
+            if lastfm_tracks:
+                if lastfm_tracks[0].get("@attr", {}).get("nowplaying", False):
+                    del lastfm_tracks[0]
+
+        data = self.form_data_dict_from_api_response(lastfm_tracks)
+        return data, num_pages
+
+    def get_recent_tracks_by_page_thread(self, date_start_epoch: int, page_num: int, queue: multiprocessing.Queue):
+        data, num_pages = self.get_recent_tracks_by_page(date_start_epoch, page_num)
+        queue.put(data)

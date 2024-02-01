@@ -107,7 +107,9 @@ def index():
                 playlist_opt_tracks_per_year = int(request.form.get("playlist_opt_tracks_per_year"))
                 playlist_opt_order_recent_first = bool(request.form.get("playlist_opt_order_recent_first"))
                 playlist_opt_repeat_artists = bool(request.form.get("playlist_opt_repeat_artists"))
-
+                playlist_opt_skip_recent = bool(request.form.get("playlist_opt_skip_recent"))
+                playlist_opt_skip_recent_time = request.form.get("playlist_opt_skip_recent_time")
+                playlist_opt_skip_recent_time = playlist_opt_skip_recent_time if playlist_opt_skip_recent else None
                 spotify_available_market = controller.get_spotify_available_market_from_timezone(tz)
                 spotify_client = SpotifyClient(session=session, available_market=spotify_available_market,
                                                tz_offset=tz_offset)
@@ -117,6 +119,7 @@ def index():
                     playlist_tracks_per_year=playlist_opt_tracks_per_year,
                     playlist_order_recent_first=playlist_opt_order_recent_first,
                     playlist_repeat_artists=playlist_opt_repeat_artists,
+                    playlist_skip_recent_time=playlist_opt_skip_recent_time,
                     tz_offset=tz_offset,
                 )
                 session["playlist_url"] = playlist_url

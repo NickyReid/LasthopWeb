@@ -1,6 +1,7 @@
 import logging
 
 import pytz
+from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from clients.monitoring_client import GoogleMonitoringClient, stats_profile
@@ -74,15 +75,25 @@ def make_playlist(
     playlist_tracks_per_year: int = None,
     playlist_order_recent_first: bool = True,
     playlist_repeat_artists: bool = False,
+    playlist_skip_recent_time: str = None,
     tz_offset: int = 0,
 ):
-    recently_played_tracks_start_date = datetime(2024, 1, 1)
     data, _ = get_stats(lastfm_user_data, tz_offset)
-    # print(f"data= {data}")
+    playlist_skip_recent_time_start_date = False
+    if playlist_skip_recent_time:
+        if playlist_skip_recent_time.lower() == "year":
+            playlist_skip_recent_time_start_date = datetime.utcnow() - relativedelta(years=1)
+        elif playlist_skip_recent_time.lower() == "6 months":
+            playlist_skip_recent_time_start_date = datetime.utcnow() - relativedelta(months=6)
+        elif playlist_skip_recent_time.lower() == "week":
+            playlist_skip_recent_time_start_date = datetime.utcnow() - relativedelta(weeks=1)
+        else:
+            logger.warning(f"Unhandled playlist_skip_recent_time_start_date {playlist_skip_recent_time}")
+
     return spotify_client.make_playlist(
         data, lastfm_user_data, playlist_tracks_per_year=playlist_tracks_per_year,
         playlist_order_recent_first=playlist_order_recent_first, playlist_repeat_artists=playlist_repeat_artists,
-        recently_played_tracks_start_date=recently_played_tracks_start_date
+        skip_recently_played_start_date=playlist_skip_recent_time_start_date
     )
 
 

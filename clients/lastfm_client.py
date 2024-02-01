@@ -199,7 +199,7 @@ class LastfmClient:
         """
         Query last.fm for the user's scrobbles for each year
         """
-        logger.info(f"Getting data from Last.fm for {self.username}...")
+        logger.info(f"Getting data Last.fm for {self.username}...")
         # days = self.get_list_of_year_dates()
         jobs = []
         result = []
@@ -220,6 +220,7 @@ class LastfmClient:
                     }
                     result.append(day_data)
             else:
+                print(f"{day} NOT CACHED")
                 job = multiprocessing.Process(
                     target=self.get_data_for_day, args=(day, queue)
                 )
@@ -245,8 +246,8 @@ class LastfmClient:
         A list of dates for each year since the user's last.fm  join date
         Each year has 3 dates to account for timezone differences
         """
-        # TODO add 48 hour buffer
         date_to_process = self.stats_start_date
+        print(f"date_to_process={date_to_process}")
         date_to_process = date_to_process.replace(hour=0).replace(minute=0).replace(second=0).replace(microsecond=0)
 
         days = []
@@ -264,17 +265,6 @@ class LastfmClient:
         """
         Query last.fm for the user's scrobbles on a given day
         """
-        # FirestoreClient.get_user(self.username)
-        # cached_scrobbles = FirestoreClient().get_all_user_lastfm_scrobbles(self.username)
-        # if cached_scrobbles and cached_scrobbles.get(str(day.date())):
-        # if cached:
-        #     if "no data" in cached:
-        #         print(f"{day} CACHED NO DATA")
-        #     else:
-        #         print(f"{day} CACHED")
-        #     result = {"day": day, "data": cached}
-        # else:
-        #     print(f"{day} NOT CACHED '{cached}' {type(cached)}")
         raw_data = self.get_lastfm_tracks_for_day(day)
         data = []
         for line in raw_data:
@@ -301,6 +291,7 @@ class LastfmClient:
         queue.put(result)
 
     def get_lastfm_tracks_for_day(self, date: datetime) -> list:
+        logger.info(f"Getting data from Last.fm for {self.username} date:{date}...")
         lastfm_response = self.lastfm_api_get_scrobbles(date, 1)
         lastfm_tracks = lastfm_response.get("recenttracks", {}).get("track")
         num_pages = int(

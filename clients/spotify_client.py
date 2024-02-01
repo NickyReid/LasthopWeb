@@ -20,7 +20,7 @@ ADD_TO_PLAYLIST_BATCH_LIMIT = 100
 DEFAULT_PLAYLIST_LENGTH = 50
 DEFAULT_TRACKS_PER_YEAR = 5
 MAX_PLAYLIST_LENGTH = int(os.getenv("MAX_PLAYLIST_LENGTH")) or 120
-DONT_ADD_RECENTLY_PLAYED_TRACKS = True
+SKIP_RECENTLY_PLAYED_TRACKS = True
 RECENTLY_PLAYED_DEFAULT_TIME = 2
 
 
@@ -89,18 +89,31 @@ class SpotifyClient:
             return None, None
         start_time = datetime.now()
         logger.info(f"Making playlist for {lastfm_user_data['username']}")
-        track_data = self.format_track_data(data, playlist_order_recent_first)
+
+        recently_played_tracks = []
+        if SKIP_RECENTLY_PLAYED_TRACKS:
+            lastfm_client = LastfmClient(lastfm_user_data['username'], lastfm_user_data['join_date'])
+            # TODO param
+            recently_played_start_date = datetime.utcnow() - timedelta(RECENTLY_PLAYED_DEFAULT_TIME)
+            for recent_scrobbles in lastfm_client.get_scrobbles_since(recently_played_start_date):
+                for scrobble in recent_scrobbles["data"]:
+                    artist = scrobble.get("artist")
+                    track = scrobble.get("track_name")
+                    hash_key = hash(f"{artist}{track}")
+                    if hash_key not in recently_played_tracks:
+
+                        recently_played_tracks.append(hash_key)
+            # print(f"recently_played_tracks = {recently_played_tracks}")
+
+            # recently_played_tracks = [x.get("data") for x in ]
+            # for t in recently_played_tracks:
+            #     print(t.get("day"))
+            #     print(len(t.get("data")))
+
+        track_data = self.format_track_data(data, playlist_order_recent_first, recently_played_tracks)
         if not track_data:
             return None, None
         try:
-            if DONT_ADD_RECENTLY_PLAYED_TRACKS:
-                lastfm_client = LastfmClient(lastfm_user_data['username'], lastfm_user_data['join_date'])
-                # TODO param
-                recently_played_start_date = datetime.utcnow() - timedelta(RECENTLY_PLAYED_DEFAULT_TIME)
-                recently_played_tracks = lastfm_client.get_scrobbles_since(recently_played_start_date)
-                for t in recently_played_tracks:
-                    print(t.get("day"))
-                    print(len(t.get("data")))
 
             # tracks_to_add_to_playlist = self.search_for_tracks(track_data, playlist_tracks_per_year,
             #                                                    playlist_repeat_artists)
@@ -161,18 +174,22 @@ class SpotifyClient:
         return playlist_id, playlist_url
 
     @staticmethod
-    def format_track_data(data: list, playlist_order_recent_first: bool = True) -> dict:
+    def format_track_data(data: list, playlist_order_recent_first: bool = True,
+                          recently_played_tracks: [] = None) -> dict:
         """
         Format the user's last.fm stats so a playlist can be created
         :param data: The user's last.fm stats
         :param playlist_order_recent_first: Order by most recent year or not
+        :param recently_played_tracks: Recently played tracks to exclude
         :return:
         """
         result = {}
         if not playlist_order_recent_first:
             data.reverse()
         for year_data in data:
+            # print(f"year_data= {year_data}")
             day = year_data["day"]
+            # print(f"day= {day}")
             result[day] = []
             data = year_data["data"]
             for artist_data in data:
@@ -180,7 +197,15 @@ class SpotifyClient:
                 artist = artist_data["artist"]
                 tracks = artist_data["track_data"]["tracks"]
                 for track_data in tracks:
-                    track_name = track_data["track_name"].replace("'", "")
+                    track_name = track_data["track_name"]
+                    # print(artist)
+                    # print(track_name)
+                    hash_key = hash(f"{artist}{track_name}")
+                    # print(f"hash_key= {hash_key}")
+                    if hash_key in recently_played_tracks:
+                        logger.info(f"Skipping recently played track '{track_name}' by '{artist}'")
+                        continue
+                    track_name = track_name.replace("'", "")
                     if artist_tracks_dict.get(artist):
                         artist_tracks_dict[artist].append(track_name)
                     else:

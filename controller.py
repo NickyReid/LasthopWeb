@@ -78,6 +78,7 @@ def make_playlist(
 ):
     recently_played_tracks_start_date = datetime(2024, 1, 1)
     data, _ = get_stats(lastfm_user_data, tz_offset)
+    # print(f"data= {data}")
     return spotify_client.make_playlist(
         data, lastfm_user_data, playlist_tracks_per_year=playlist_tracks_per_year,
         playlist_order_recent_first=playlist_order_recent_first, playlist_repeat_artists=playlist_repeat_artists,

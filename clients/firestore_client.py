@@ -137,37 +137,16 @@ class FirestoreClient(metaclass=Singleton):
             if not date_cached:
                 date_cached = datetime.utcnow()
 
-            if not scrobbles and scrobble_date.date() < datetime.utcnow().date():
-                logger.info(f"No data for this day in the past {scrobble_date}")
+            if scrobble_date.date() >= datetime.utcnow().date():
+                logger.info("Not caching current/recent data")
+                print("Not caching current/recent data")
+                return
+            if not scrobbles:
+                logger.info(f"No data for this day {scrobble_date}")
                 scrobbles = "no data"
-            elif not scrobbles and scrobble_date.date() >= datetime.utcnow().date():
-                logger.info(f"No data for this day current/future {scrobble_date}")
+
             doc_ref.set({str(scrobble_date.date()): scrobbles, "scrobble_date": scrobble_date,
                          "date_scrobbles_cached": date_cached}, merge=True)
-        except:
-            GoogleMonitoringClient().increment_thread("firestore-exception")
-            logger.exception(f"Exception occurred in firestore client on set_lastfm_scrobbles")
-
-    def get_user_lastfm_scrobbles(self, username: str, scrobble_date: datetime):
-        try:
-            # doc_ref = self.client.collection("artists").document(
-            #     self.strip_string(artist)
-            # )
-            # doc = doc_ref.get()
-            # if doc.to_dict():
-            #     return doc.to_dict().get("tag")
-            logger.info(f"Getting cached scrobbles for {self.strip_string(username)}...")
-            doc_ref = self.client.collection("user_lastfm_data").document(
-                self.strip_string(username)
-            )
-            doc = doc_ref.get()
-            if doc.to_dict():
-                return doc.to_dict().get(str(scrobble_date.date()))
-            # if not date_cached:
-            #     date_cached = datetime.utcnow()
-            #
-            # doc_ref.set({str(scrobble_date.date()): scrobbles, "scrobble_date": scrobble_date,
-            #              "date_scrobbles_cached": date_cached}, merge=True)
         except:
             GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on set_lastfm_scrobbles")

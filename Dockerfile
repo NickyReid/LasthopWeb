@@ -1,12 +1,8 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:latest
+FROM python:3.8-slim-buster
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update \
-  && apt-get install -y python3-pip \
-  && cd /usr/local/bin \
-  && ln -s /usr/bin/python3 python \
-  && pip3 install --upgrade pip
+RUN cd /usr/local/bin && pip3 install --upgrade pip
 
 WORKDIR /LasthopWeb
 

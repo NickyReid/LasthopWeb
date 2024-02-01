@@ -1,3 +1,4 @@
+import random
 import time
 from functools import wraps
 
@@ -7,7 +8,7 @@ class RetryException(Exception):
     pass
 
 
-def retry(exception_to_check, tries=4, delay=0, backoff=0, _logger=None):
+def retry(exception_to_check, tries=4, delay=0, backoff=0, _logger=None, randomize=False):
     def deco_retry(f):
         @wraps(f)
         def f_retry(*args, **kwargs):
@@ -24,6 +25,9 @@ def retry(exception_to_check, tries=4, delay=0, backoff=0, _logger=None):
                         _logger.exception(msg)
                     else:
                         print(msg)
+                    if randomize:
+                        wait += random.random()
+                        print(f"Waiting for {wait} seconds")
                     time.sleep(wait)
                     remaining_tries -= 1
                     wait *= backoff

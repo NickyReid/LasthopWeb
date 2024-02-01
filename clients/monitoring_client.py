@@ -1,11 +1,10 @@
+import logging
 import os
 import time
 import uuid
-import logging
 
 from threading import Thread
 from google.cloud import monitoring_v3
-
 
 def stats_profile(func):
     def timed(*args, **kwargs):
@@ -32,10 +31,15 @@ class Singleton(type):
 
 
 class GoogleMonitoringClient(metaclass=Singleton):
+
     def __init__(self):
-        self.client = monitoring_v3.MetricServiceClient()
-        self.project_name = "projects/fiery-azimuth-410611"
-        self.send_metrics = "prod" in os.getenv("ENVIRONMENT", "").lower()
+        google_cloud_project = os.getenv("GOOGLE_CLOUD_PROJECT")
+        if google_cloud_project:
+            self.client = monitoring_v3.MetricServiceClient()
+            self.project_name = f"projects/{google_cloud_project}"
+            self.send_metrics = "prod" in os.getenv("ENVIRONMENT", "").lower()
+        else:
+            self.send_metrics = False
 
     def increment_thread(self, metric_type, value=1):
         if self.send_metrics:

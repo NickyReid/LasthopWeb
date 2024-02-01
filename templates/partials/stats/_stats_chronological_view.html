@@ -1,7 +1,7 @@
 <div>
     <div id="tracks-header" class="row" style="padding-bottom:3%;">
         <div style="width:15%;"><strong> Year </strong></div>
-        <div style="width:55%;"><strong> Week Day </strong></div>
+        <div style="width:55%;"><strong> Day </strong></div>
         <div style="width:30%;"><strong> Scrobbles </strong></div>
 
     </div>
@@ -11,8 +11,13 @@
         <summary>
             <div id="tracks-summary" class="row">
                 <div style="width:15%;font-size: small;"> <strong>{{ year_data['day'].strftime('%Y') }}</strong></div>
-                <div style="width:55%;"> {{ year_data['day'].strftime('%A') }} </div>
-                <div style="width:30%;font-size: small;"> {{ year_data['scrobble_list']|length }} </div>
+                <div style="width:55%;"><span style="background: transparent;border: none;"><span style="background: transparent;border: none;padding-right:2%;"><img src="static/assets/img/arrow-light.png" style="width: 4%;" alt="See more"></span>  {{ year_data['day'].strftime('%A') }} </div>
+                <div style="width:20%;font-size: small;"> {{ year_data['scrobble_list']|length }} </div>
+                <div id="lastfm-day-link" style="width:10%;font-size: small;" title="Open in LastFM">
+                    <a href="https://www.last.fm/user/{{ lastfm_user_data.username }}/library?from={{ year_data['day'].strftime('%Y-%m-%d') }}&to={{ year_data['day'].strftime('%Y-%m-%d') }}" target="_blank">
+                        <img src="static/assets/img/link.png" style="width: 10px;">
+                    </a>
+                </div>
             </div>
         </summary>
         {% for track_data in year_data['scrobble_list'] %}

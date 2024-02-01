@@ -1,8 +1,6 @@
 import os
 import logging
-
 import pytz
-
 import controller
 from spotipy.oauth2 import SpotifyOauthError
 from clients.spotify_client import SpotifyClient, SpotifyForbiddenException, DEFAULT_TRACKS_PER_YEAR
@@ -18,14 +16,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app.secret_key = os.getenv("SESSION_SECRET_KEY")
-
-# Spotify only allows limited access until they approve the app.
-# To be added to the list, DM me your email address and last.fm username to be added as a user
-PLAYLIST_APPROVED_USERS = ["schiz0rr", "f1ak3r"]
-
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=25)
 
 @app.route("/", methods=["POST", "GET"])
 def index():
+    session.permanent = True
     start_time = datetime.now()
     lastfm_user_data = None
     username = None
@@ -36,7 +31,6 @@ def index():
     tz = None
     auth_url = None
     date_cached = None
-    allow_playlists = True
 
     spotify_authorized = False
 
@@ -58,7 +52,7 @@ def index():
         if "tz" in session:
             tz = session["tz"]
 
-        if "access_token" in session:
+        if "access_token" in session and session["access_token"] is not None:
             spotify_authorized = True
 
         if request.method == "GET":
@@ -68,7 +62,6 @@ def index():
                 session["access_token"] = spotify_auth_manager.get_access_token(
                     spotify_auth_code, as_dict=False
                 )
-                spotify_authorized = True
                 return redirect("/")
 
             elif request.args.get("clear"):
@@ -82,11 +75,13 @@ def index():
                 logger.info(f"New username {form_username} entered, clearing session")
                 auth_url = session.get("auth_url")
                 access_token = session.get("access_token")
+                token_info = session.get("token_info")
                 session.clear()
                 if auth_url:
                     session["auth_url"] = auth_url
-                if access_token:
+                if access_token and token_info:
                     session["access_token"] = access_token
+                    session["token_info"] = token_info
                 playlist_url = None
             if request.form.get("tz_offset"):
                 session["tz_offset"] = tz_offset = int(request.form["tz_offset"])
@@ -103,28 +98,29 @@ def index():
                 if lastfm_user_data and lastfm_user_data.get("username"):
                     username = session["username"] = lastfm_user_data["username"]
 
-            if request.form.get("make_playlist"):
+            if request.form.get("make_playlist") and lastfm_user_data:
                 playlist_opt_tracks_per_year = int(request.form.get("playlist_opt_tracks_per_year"))
                 playlist_opt_order_recent_first = bool(request.form.get("playlist_opt_order_recent_first"))
                 playlist_opt_repeat_artists = bool(request.form.get("playlist_opt_repeat_artists"))
-
+                playlist_opt_skip_recent = bool(request.form.get("playlist_opt_skip_recent"))
+                playlist_opt_skip_recent_time = request.form.get("playlist_opt_skip_recent_time")
+                playlist_opt_skip_recent_time = playlist_opt_skip_recent_time if playlist_opt_skip_recent else None
                 spotify_available_market = controller.get_spotify_available_market_from_timezone(tz)
                 spotify_client = SpotifyClient(session=session, available_market=spotify_available_market,
                                                tz_offset=tz_offset)
+
                 playlist_id, playlist_url = controller.make_playlist(
                     spotify_client=spotify_client,
                     lastfm_user_data=lastfm_user_data,
                     playlist_tracks_per_year=playlist_opt_tracks_per_year,
                     playlist_order_recent_first=playlist_opt_order_recent_first,
                     playlist_repeat_artists=playlist_opt_repeat_artists,
+                    playlist_skip_recent_time=playlist_opt_skip_recent_time,
                     tz_offset=tz_offset,
                 )
                 session["playlist_url"] = playlist_url
 
         if username:
-            if "prod" in os.getenv("ENVIRONMENT", "").lower() and username.lower() not in PLAYLIST_APPROVED_USERS:
-            # if username.lower() not in PLAYLIST_APPROVED_USERS:
-                allow_playlists = False
             if lastfm_user_data:
                 message = (
                     f"{username} has been on Last.fm since "
@@ -149,6 +145,7 @@ def index():
     except SpotifyOauthError:
         session["access_token"] = None
         session["auth_url"] = None
+        spotify_authorized = False
         logger.exception(
             f"SpotifyOauthError Exception occurred. username:{username} lastfm_user_data:{lastfm_user_data} "
             f"tz:{tz} tz_offset:{tz_offset}"
@@ -158,13 +155,16 @@ def index():
     except SpotifyForbiddenException:
         session["access_token"] = None
         session["auth_url"] = None
+        spotify_authorized = False
         logger.exception(
             f"SpotifyForbiddenException Exception occurred. username:{username} lastfm_user_data:{lastfm_user_data}"
             f" tz:{tz} tz_offset:{tz_offset}"
         )
         # message = "Please authorize Spotify to create a playlist"
     except:
+        session["access_token"] = None
         session["auth_url"] = None
+        spotify_authorized = False
         logger.exception(
             f"Unhandled Exception occurred. username:{username} lastfm_user_data:{lastfm_user_data} "
             f"tz:{tz} tz_offset:{tz_offset}"
@@ -175,6 +175,7 @@ def index():
     logger.info(f"Response message: {message} Referer:{request.referrer}")
     logger.info(f"{username} User-Agent: {request.headers.get('User-Agent')}")
     today = (datetime.utcnow()).replace(tzinfo=pytz.UTC) - timedelta(minutes=tz_offset)
+
     return render_template(
         "index.html",
         lastfm_user_data=lastfm_user_data,
@@ -182,7 +183,6 @@ def index():
         message=message,
         auth_url=auth_url,
         stats=stats,
-        allow_playlists=allow_playlists,
         date_cached=date_cached,
         today=today,
         min_tracks_per_year=min_tracks_per_year,

@@ -36,6 +36,36 @@
         </div>
     </div>
 
+    <div class="row playlist-options-row" style="font-size: small;">
+        <div style="width:50%; padding-right:5px;">
+            <label for="skip-recent" style="float: right;">Skip recently played</label>
+        </div>
+
+        <div style="width:50%; padding-left:5px;">
+            <label class="switch" style="float: left;">
+                <input id="skip-recent" name="playlist_opt_skip_recent" type="checkbox" class="switch-input" onclick="toggleSkipRecentlyPlayed();">
+                <span class="switch-label"></span>
+                <span class="switch-handle"></span>
+            </label>
+        </div>
+    </div>
+
+    <div id="skip-recent-options" class="row playlist-options-row" style="font-size: small;display:none;">
+        <div style="text-align: center;">
+
+            <input type="radio" id="skip-one-year" name="playlist_opt_skip_recent_time" value="Year" checked>
+            <label for="skip-one-year">1 Year</label>
+
+            <input type="radio" id="skip-six-months" name="playlist_opt_skip_recent_time" value="6 Months">
+            <label for="skip-six-months">6 Months</label>
+
+            <input type="radio" id="skip-one-week" name="playlist_opt_skip_recent_time" value="Week">
+            <label for="skip-one-week">1 Week</label>
+
+        </div>
+
+    </div>
+
     <div class="row playlist-options-row">
         <div style="text-align: center;">
             <input type="hidden"  name="make_playlist" value="True">

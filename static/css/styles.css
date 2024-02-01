@@ -10892,7 +10892,6 @@ video.bg-video {
 }
 .masthead .masthead-content {
   position: relative;
-  max-width: 40rem;
   padding-top: 5rem;
   padding-bottom: 5rem;
 }
@@ -10927,7 +10926,7 @@ video.bg-video {
     padding-bottom: 0;
   }
   .masthead:before {
-    transform: skewX(-9deg);
+    transform: skewX(-1deg);
     transform-origin: top right;
   }
   .masthead .masthead-content {
@@ -10945,7 +10944,7 @@ video.bg-video {
 }
 @media (min-width: 1200px) {
   .masthead {
-    width: 65vw;
+
   }
 }
 .social-icons {

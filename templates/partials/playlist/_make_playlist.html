@@ -1,32 +1,27 @@
 <div>
-{% if lastfm_user_data and stats %}
+    {% if lastfm_user_data and stats %}
     <div class="row">
         <div style="text-align: center;font-size: larger;padding-bottom: 10px;">
             Make a playlist
         </div>
     </div>
 
-    {% if not allow_playlists %}
-    {% include 'partials/playlist/_sign_up_for_playlists.html' %}
-    {% else %}
-
     {% if playlist_url %}
     {% include 'partials/playlist/_open_playlist.html' %}
     {% endif %}
 
- {% if playlist_url %}
+    {% if playlist_url %}
     <div id="make-playlist-box" style="display:none;">
         {% else %}
-    <div style="display:block;">
-        {% endif %}
-        <div style="text-align: left;">
-         {% if spotify_authorized %}
-         {% include 'partials/playlist/_playlist_options.html' %}
-         {% else %}
-         {% include 'partials/playlist/_authorize_spotify.html' %}
-         {% endif %}
+        <div style="display:block;">
+            {% endif %}
+            <div style="text-align: left;">
+                {% if spotify_authorized %}
+                {% include 'partials/playlist/_playlist_options.html' %}
+                {% else %}
+                {% include 'partials/playlist/_authorize_spotify.html' %}
+                {% endif %}
+            </div>
         </div>
+        {% endif %}
     </div>
-{% endif %}
-{% endif %}
-</div>

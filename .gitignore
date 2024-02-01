@@ -162,3 +162,5 @@ cython_debug/
 .DS_Store
 .idea/
 service-acc.json
+scripts.py
+local_cache

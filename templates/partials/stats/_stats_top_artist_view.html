@@ -11,7 +11,7 @@
         <summary>
             <div id="top-artists-summary" class="row">
                 <div style="width:15%;font-size: small;"><strong>{{ year_data['day'].strftime('%Y') }}</strong></div>
-                <div style="width:55%;">{{ year_data['data'][0]['artist'] }}</div>
+                <div style="width:55%;"><span style="background: transparent;border: none;padding-right:2%;"><img src="static/assets/img/arrow-light.png" style="width: 5%;" alt="See more"></span>{{ year_data['data'][0]['artist'] }}</div>
                 <div style="font-size: small;width:30%;">
                     {% if year_data['data'][0]['tag'] %}
                     {{ year_data['data'][0]['tag'] }}
@@ -25,7 +25,7 @@
             <summary>
                 <div id="top-artists" class="row">
                     <div style="width:15%;text-align: right;font-size: small;"> {{ artist_data['track_data']['playcount'] }} </div>
-                    <div style="width:60%;padding-left: 20px;"> {{ artist_data['artist'] }}</div>
+                    <div style="width:60%;padding-left: 20px;color:#7fbfbd;"> <span style="background: transparent;border: none;padding-left:5%;"><img src="static/assets/img/arrow-dark.png" style="width: 4%;" alt="See more"></span> {{ artist_data['artist'] }}</div>
                     <div style="font-size: small;width:25%;"></div>
                 </div>
             </summary>
@@ -34,7 +34,7 @@
                 {% if track_data["date"] %}
                 <div id="top-artists-tracks" class="row">
                     <div style="width:20%;text-align: right;">   </div>
-                    <div style="width:80%;color: #7fbfbd;">[{{ track_data["date"].strftime('%H:%M') }}]  {{ track_data["track_name"] }} </div>
+                    <div style="width:80%;color: #3d8481;">[{{ track_data["date"].strftime('%H:%M') }}]  {{ track_data["track_name"] }} </div>
                 </div>
                 {% endif %}
                 {% endfor %}

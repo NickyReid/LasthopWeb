@@ -1,39 +1,79 @@
-<div class="masthead-content text-white" style="padding-left: 15px;">
+<div class="masthead-content text-white" style="padding-left: 15px;padding-right: 15px;">
     {% include 'partials/playlist/_make_playlist.html' %}
 
     <hr class="solid">
-    <h4 style="text-align: center;">
+    <h5 style="text-align: center;">
         {% if lastfm_user_data.real_name %}
         {{ lastfm_user_data.real_name }}'s
         {% else %}
         {{ lastfm_user_data.username }}'s
         {% endif %}
         listening history for {{ today.strftime('%-d %B') }}
-    </h4>
+    </h5>
 
     <div class="row">
         <div id="view-info-top-artists" style="font-size:small;text-align:center;display:block;">
-            Your top artists on {{ today.strftime('%-d %B') }} for each year. Expand to see more.
+            Your top artists on {{ today.strftime('%-d %B') }} for each year.
         </div>
 
         <div id="view-info-all-scrobbles" style="font-size:small;text-align:center;display:none;">
-            All your scrobbles on {{ today.strftime('%-d %B') }} for each year. Expand to see more.
+            All your scrobbles on {{ today.strftime('%-d %B') }} for each year.
         </div>
     </div>
 
-    <hr class="solid">
-
-    <div id="view-type-switch" style="font-size:xx-small;color:#5bb9b9;padding-top:15px;" onclick="toggleStatsView()"><u>See All Scrobbles</u></div>
-
-    <div id="stats-artist-view" style="display:block;">
-        {% include 'partials/stats/_stats_top_artist_view.html' %}
+    <hr class="solid" style="margin-bottom: 1%;">
+    <div id="view-type-switch" style="font-size:xx-small;color:#5bb9b9;" onclick="toggleStatsView()"><u>See All Scrobbles</u></div>
+    <div>
+        <div id="stats-artist-view" style="display:block;">
+            {% include 'partials/stats/_stats_top_artist_view.html' %}
+        </div>
+        <div id="stats-chrono-view" style="display:none;">
+            {% include 'partials/stats/_stats_chronological_view.html' %}
+        </div>
     </div>
-    <div id="stats-chrono-view" style="display:none;">
-        {% include 'partials/stats/_stats_chronological_view.html' %}
-    </div>
     <hr class="solid">
+     <div style="ont-size: x-small;color: #295553;">
+        <button id="copyButtonBottom" style="background: transparent;border: none;" data-clipboard-target="#clipboard"><img data-clipboard-target="#results" src="static/assets/img/copy.png" style="width: 5%;" alt="Share">
+    <span style="color: #52aaaa;font-size:x-small;">Copy results to clipboard</span>
+        </button>
+    </div>
 
     <div class="container-fluid px-4 px-lg-0" style="padding-top: 50px;">
         {% include 'partials/_username_form.html' %}
     </div>
+    <div id="clipboard" style="display:none;">
+        {% include 'partials/stats/_stats_clipboard.html' %}
+    </div>
 </div>
+<script>
+document.getElementById('copyButtonBottom').addEventListener('click', copyToClipboard);
+function copyToClipboard() {
+    var copyText = document.querySelector(this.dataset.clipboardTarget).innerText;
+    // Split the text by newline, remove leading spaces, add a single additional newline to each line, and join them back together
+    copyText = copyText.split('\n').map(line => line.trimStart() + '\n\n').join('');
+    // Remove extra newlines
+    copyText = copyText.replace(/\n{3,}/g, '\n\n');
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(copyText).then(function() {
+            console.log('Copying to clipboard was successful!');
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+        });
+    } else {
+        console.error('Clipboard API not available');
+        var textArea = document.createElement("textarea");
+        textArea.value = copyText;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            var successful = document.execCommand('copy');
+            var msg = successful ? 'successful' : 'unsuccessful';
+            console.log('Fallback: Copying text command was ' + msg);
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+        document.body.removeChild(textArea);
+    }
+}
+</script>

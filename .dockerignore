@@ -1,2 +1,4 @@
 .env
 venv*
+scripts.py
+local_cache

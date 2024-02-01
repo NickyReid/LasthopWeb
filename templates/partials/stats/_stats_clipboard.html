@@ -1,0 +1,6 @@
+My top artists for {{ today.strftime('%-d %B') }}:
+{% for year_data in stats %}
+{% if year_data['data'] %}
+    {{ year_data['day'].strftime('%Y') }}: {{ year_data['data'][0]['artist'] }}
+ {% endif %}
+{% endfor %}

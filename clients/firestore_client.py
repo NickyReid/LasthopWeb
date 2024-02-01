@@ -128,6 +128,75 @@ class FirestoreClient(metaclass=Singleton):
             GoogleMonitoringClient().increment_thread("firestore-exception")
             logger.exception(f"Exception occurred in firestore client on set_user_data")
 
+    def set_user_lastfm_scrobbles(self, username: str, scrobbles: [dict], scrobble_date: datetime, date_cached=None):
+        try:
+            logger.debug(f"Caching scrobbles for {self.strip_string(username)}...")
+            doc_ref = self.client.collection("user_lastfm_data").document(
+                self.strip_string(username)
+            )
+            if not date_cached:
+                date_cached = datetime.utcnow()
+
+            if not scrobbles and scrobble_date.date() < datetime.utcnow().date():
+                logger.info(f"No data for this day in the past {scrobble_date}")
+                scrobbles = "no data"
+            elif not scrobbles and scrobble_date.date() >= datetime.utcnow().date():
+                logger.info(f"No data for this day current/future {scrobble_date}")
+            doc_ref.set({str(scrobble_date.date()): scrobbles, "scrobble_date": scrobble_date,
+                         "date_scrobbles_cached": date_cached}, merge=True)
+        except:
+            GoogleMonitoringClient().increment_thread("firestore-exception")
+            logger.exception(f"Exception occurred in firestore client on set_lastfm_scrobbles")
+
+    def get_user_lastfm_scrobbles(self, username: str, scrobble_date: datetime):
+        try:
+            # doc_ref = self.client.collection("artists").document(
+            #     self.strip_string(artist)
+            # )
+            # doc = doc_ref.get()
+            # if doc.to_dict():
+            #     return doc.to_dict().get("tag")
+            logger.info(f"Getting cached scrobbles for {self.strip_string(username)}...")
+            doc_ref = self.client.collection("user_lastfm_data").document(
+                self.strip_string(username)
+            )
+            doc = doc_ref.get()
+            if doc.to_dict():
+                return doc.to_dict().get(str(scrobble_date.date()))
+            # if not date_cached:
+            #     date_cached = datetime.utcnow()
+            #
+            # doc_ref.set({str(scrobble_date.date()): scrobbles, "scrobble_date": scrobble_date,
+            #              "date_scrobbles_cached": date_cached}, merge=True)
+        except:
+            GoogleMonitoringClient().increment_thread("firestore-exception")
+            logger.exception(f"Exception occurred in firestore client on set_lastfm_scrobbles")
+
+    def get_all_user_lastfm_scrobbles(self, username: str):
+        try:
+            # doc_ref = self.client.collection("artists").document(
+            #     self.strip_string(artist)
+            # )
+            # doc = doc_ref.get()
+            # if doc.to_dict():
+            #     return doc.to_dict().get("tag")
+            logger.info(f"Getting all cached scrobbles for {self.strip_string(username)}...")
+            doc_ref = self.client.collection("user_lastfm_data").document(
+                self.strip_string(username)
+            )
+            doc = doc_ref.get()
+            if doc.to_dict():
+                return doc.to_dict()
+            # if not date_cached:
+            #     date_cached = datetime.utcnow()
+            #
+            # doc_ref.set({str(scrobble_date.date()): scrobbles, "scrobble_date": scrobble_date,
+            #              "date_scrobbles_cached": date_cached}, merge=True)
+        except:
+            GoogleMonitoringClient().increment_thread("firestore-exception")
+            logger.exception(f"Exception occurred in firestore client on get_all_user_lastfm_scrobbles")
+
+
     @stats_profile
     def increment_user_days_visited(self, username):
         try:

@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 from clients.monitoring_client import GoogleMonitoringClient
 from clients.firestore_client import FirestoreClient
+from clients.lastfm_client import LastfmClient
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -19,6 +20,8 @@ ADD_TO_PLAYLIST_BATCH_LIMIT = 100
 DEFAULT_PLAYLIST_LENGTH = 50
 DEFAULT_TRACKS_PER_YEAR = 5
 MAX_PLAYLIST_LENGTH = int(os.getenv("MAX_PLAYLIST_LENGTH")) or 120
+DONT_ADD_RECENTLY_PLAYED_TRACKS = True
+RECENTLY_PLAYED_DEFAULT_TIME = 2
 
 
 class SpotifyForbiddenException(Exception):
@@ -36,6 +39,7 @@ class SpotifyClient:
         self.available_market = available_market
         self.tz_offset = tz_offset or 0
         self.firestore_client = FirestoreClient()
+        # TODO add username and join date?
 
     @staticmethod
     def get_auth_manager(session):
@@ -60,7 +64,8 @@ class SpotifyClient:
             lastfm_user_data: dict = None,
             playlist_tracks_per_year: int = None,
             playlist_order_recent_first: bool = True,
-            playlist_repeat_artists: bool = False
+            playlist_repeat_artists: bool = False,
+            recently_played_tracks_start_date: datetime = None
     ) -> (str, str):
         """
         Make a Spotify playlist, search for tracks and add them to the playlist
@@ -69,12 +74,14 @@ class SpotifyClient:
         :param playlist_tracks_per_year: Max number of tracks per year
         :param playlist_order_recent_first: Order by most recent year or not
         :param playlist_repeat_artists: Allow artists to appear more than once in the playlist
+        :param recently_played_tracks_start_date: Don't add tracks that have been played since this date
         :return: (playlist_id, playlist_url): Spotify playlist ID and URL
         """
         logger.info(f"Playlist options: user:{lastfm_user_data['username']}; "
                     f"playlist_tracks_per_year:{playlist_tracks_per_year}; "
                     f"playlist_order_recent_first:{playlist_order_recent_first}; "
                     f"playlist_repeat_artists:{playlist_repeat_artists}; "
+                    f"recently_played_tracks_start_date:{recently_played_tracks_start_date}; "
                     f"available_market:{self.available_market}; tz_offset:{self.tz_offset}")
         playlist_tracks_per_year = playlist_tracks_per_year or DEFAULT_TRACKS_PER_YEAR
         if not data:
@@ -86,18 +93,29 @@ class SpotifyClient:
         if not track_data:
             return None, None
         try:
-            tracks_to_add_to_playlist = self.search_for_tracks(track_data, playlist_tracks_per_year,
-                                                               playlist_repeat_artists)
+            if DONT_ADD_RECENTLY_PLAYED_TRACKS:
+                lastfm_client = LastfmClient(lastfm_user_data['username'], lastfm_user_data['join_date'])
+                # TODO param
+                recently_played_start_date = datetime.utcnow() - timedelta(RECENTLY_PLAYED_DEFAULT_TIME)
+                recently_played_tracks = lastfm_client.get_scrobbles_since(recently_played_start_date)
+                for t in recently_played_tracks:
+                    print(t.get("day"))
+                    print(len(t.get("data")))
+
+            # tracks_to_add_to_playlist = self.search_for_tracks(track_data, playlist_tracks_per_year,
+            #                                                    playlist_repeat_artists)
+            tracks_to_add_to_playlist = None
             if not tracks_to_add_to_playlist:
                 logger.info(f"No tracks to add to this playlist")
                 return None, None
 
-            playlist_id, playlist_url = self.create_playlist(
-                lastfm_user_data
-            )
-            track_count = len(tracks_to_add_to_playlist)
-
-            self.batch_add_tracks_to_playlist(playlist_id=playlist_id, track_data=tracks_to_add_to_playlist)
+            playlist_id, playlist_url, track_count = 1, "222", 2
+            # playlist_id, playlist_url = self.create_playlist(
+            #     lastfm_user_data
+            # )
+            # track_count = len(tracks_to_add_to_playlist)
+            #
+            # self.batch_add_tracks_to_playlist(playlist_id=playlist_id, track_data=tracks_to_add_to_playlist)
 
             if playlist_url:
                 logger.info(

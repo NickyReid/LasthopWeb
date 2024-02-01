@@ -3,8 +3,9 @@ import math
 import unittest
 import sys
 from unittest.mock import MagicMock, Mock
-
+from datetime import datetime
 from clients import spotify_client
+from clients import lastfm_client
 
 ADD_TO_PLAYLIST_BATCH_LIMIT = 10
 logger = logging.getLogger()
@@ -74,3 +75,39 @@ class TestSpotifyClient(unittest.TestCase):
         batches = math.ceil(mock_track_data_length / spotify_client.ADD_TO_PLAYLIST_BATCH_LIMIT)
         sp.batch_add_tracks_to_playlist(playlist_id, mock_track_data)
         self.assertEqual(sp.spotify_client.playlist_add_items.call_count, batches)
+
+
+class TestLastfmClient(unittest.TestCase):
+
+    def __init__(self, *args, **kwargs):
+        super(TestLastfmClient, self).__init__(*args, **kwargs)
+        lastfm_username = "schiz0rr"
+        lastfm_join_date = datetime(2006, 1, 12)
+        self.lfm_client = lastfm_client.LastfmClient(lastfm_username, lastfm_join_date)
+
+    def test_get_list_of_dates(self):
+        start_date = datetime(2023, 12, 25)
+        end_date = datetime(2023, 12, 30)
+        list_of_days = self.lfm_client.get_list_of_dates(start_date, end_date)
+        self.assertEqual(len(list_of_days), 6)
+
+    def test_get_list_of_year_dates(self):
+        self.lfm_client.join_date = datetime(2006, 12, 1)
+        self.lfm_client.stats_start_date = datetime(2023, 12, 25)
+        year_dates = self.lfm_client.get_list_of_year_dates()
+        # print(year_dates)
+        for d in year_dates:
+            print(d)
+        self.assertEqual(len(year_dates), 18*3)
+
+    def test_get_list_of_year_dates_join_date_anniversary(self):
+        self.lfm_client.join_date = datetime(2006, 12, 1)
+        self.lfm_client.stats_start_date = datetime(2023, 12, 1)
+        year_dates = self.lfm_client.get_list_of_year_dates()
+        self.assertEqual(len(year_dates), 18*3)
+
+    def test_get_list_of_year_dates_leap_year(self):
+        self.lfm_client.join_date = datetime(2006, 12, 1)
+        self.lfm_client.stats_start_date = datetime(2024, 2, 29)
+        year_dates = self.lfm_client.get_list_of_year_dates()
+        self.assertEqual(len(year_dates), 5*3)
